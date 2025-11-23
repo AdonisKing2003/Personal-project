@@ -3,6 +3,7 @@
 
 #include "ssd1306.h"
 #include <pthread.h> 
+#include "utils.h"
 
 #define MAP_WIDTH 	128 // width oled
 #define MAP_HEIGHT	64	// Height oled

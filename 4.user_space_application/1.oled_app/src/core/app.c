@@ -9,6 +9,7 @@
 #include "seven_segment.h"
 #include "button.h"
 #include "utils.h"
+#include "buzzer.h"
 
 int fd;
 
@@ -34,7 +35,7 @@ void app_run(void)
     pthread_create(&input_thread, NULL, input_thread_func, NULL);
     pthread_create(&logic_thread, NULL, game_logic_thread_func, NULL);
     pthread_create(&render_thread, NULL, render_thread_func, &fd);
-    pthread_create(&buzzer_thread, NULL, buzzer_task, NULL);
+    pthread_create(&buzzer_thread, NULL, buzzer_thread_func, NULL);
 
     pthread_join(input_thread, NULL);
     pthread_join(logic_thread, NULL);

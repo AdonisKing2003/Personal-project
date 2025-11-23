@@ -18,7 +18,10 @@ typedef enum  {
     APP_RET_ERR_IO_DEV_OPEN             = 7,
     APP_RET_ERR_IO_READ                 = 8,
     APP_RET_ERR_IO_WRITE                = 9,
-    APP_RET_ERR_INVALID_BUFFER_INDEX    = 10
+    APP_RET_ERR_INVALID_BUFFER_INDEX    = 10,
+    APP_RET_ERR_INVALID_PARAM           = 11,
+    APP_RET_ERR_PWM_PERIOD              = 12,
+    APP_RET_ERR_PWM_DUTY                = 13
 } e_app_return_t;
 
 /* variable declare*/

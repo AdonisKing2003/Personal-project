@@ -10,7 +10,7 @@ ARCH ?=
 # Set KERNEL_SRC and CROSS_COMPILE based on ARCH value
 ifeq ($(ARCH),arm64)
 	# Raspberry Pi 4 64-bit kernel source and cross-compile prefix
-	KERNEL_SRC ?= /home/adonisking/Learning_Linux/3.Device_driver/SDK/sysroots/cortexa72-poky-linux/usr/src/kernel
+	KERNEL_SRC ?= /home/adonisking/workspace/4.SDK/sysroots/cortexa72-poky-linux/usr/src/kernel
 	CROSS_COMPILE ?= aarch64-poky-linux-
 else
 	# Default: native Linux kernel build directory and no cross-compiler

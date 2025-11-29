@@ -1,7 +1,7 @@
 ARCH ?= arm
 CROSS_COMPILE ?= arm-poky-linux-gnueabi-
 
-KERNEL_SRC := /home/adonisking/Learning_Linux/3.Device_driver/SDK/sysroots/cortexa7t2hf-neon-vfpv4-poky-linux-gnueabi/usr/src/kernel
+KERNEL_SRC := /home/adonisking/workspace/4.SDK/sysroots/cortexa72-poky-linux/usr/src/kernel
 SRC_DIR := $(shell pwd)/src
 
 all:

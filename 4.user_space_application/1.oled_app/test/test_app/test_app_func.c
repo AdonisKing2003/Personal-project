@@ -4,11 +4,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
-#include "/home/adonisking/Learning_Linux/4.user_space_application/1.oled_app/include/drivers/ssd1306_data.h"
-#include "/home/adonisking/Learning_Linux/4.user_space_application/1.oled_app/include/utils/utils.h"
-#include "/home/adonisking/Learning_Linux/4.user_space_application/1.oled_app/include/drivers/ssd1306.h"
-#include "/home/adonisking/Learning_Linux/4.user_space_application/1.oled_app/include/drivers/button.h"
-#include "/home/adonisking/Learning_Linux/4.user_space_application/1.oled_app/include/core/game_logic_thread.h"
+#include "ssd1306_data.h"
+#include "utils.h"
+#include "ssd1306.h"
+#include "button.h"
+#include "game_logic_thread.h"
 #include "render_thread.h"
 
 void test_column(int fd);

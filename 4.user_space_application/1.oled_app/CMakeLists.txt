@@ -107,6 +107,7 @@ target_link_libraries(test_app PRIVATE Threads::Threads)
 
 # build:
 # source ../../../3.Device_driver/SDK/environment-setup-cortexa72-poky-linux
+# export OE_CMAKE_TOOLCHAIN_FILE=~/workspace/4.SDK/sysroots/x86_64-pokysdk-linux/usr/share/cmake/OEToolchainConfig.cmake
 # cd /home/adonisking/Learning_Linux/4.user_space_application/1.oled_app/build
 # cmake -DCMAKE_TOOLCHAIN_FILE=$OE_CMAKE_TOOLCHAIN_FILE ..
 # cmake --build . --target oled_write_pixel

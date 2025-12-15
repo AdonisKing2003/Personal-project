@@ -237,10 +237,12 @@ static long etx_oled_ioctl(struct file *file, unsigned int cmd, unsigned long ar
             if (copy_from_user(&val, (uint8_t __user *)arg, sizeof(val)))
                 return -EFAULT;
             cmd_in = val; SSD1306_Write(true, &cmd_in, 1);  // ở đây giá trị trỏ vào 0x00
+            break;
         case ETX_IOCTL_SET_COL_HIGH:
             if (copy_from_user(&val, (uint8_t __user *)arg, sizeof(val)))
                 return -EFAULT;
             cmd_in = val; SSD1306_Write(true, &cmd_in, 1);  // ở đây giá trị trỏ vào 0x10
+            break;
         default:
             return -EINVAL;
     }
@@ -407,7 +409,7 @@ static struct i2c_board_info oled_i2c_board_info = {
 /* Module Init function */
 static int __init etx_driver_init(void)
 {
-    int ret = -1;
+    int ret = 0;
     etx_i2c_adapter = i2c_get_adapter(I2C_BUS_AVAILABLE);
 
     if( etx_i2c_adapter != NULL )
@@ -419,8 +421,20 @@ static int __init etx_driver_init(void)
             i2c_add_driver(&etx_oled_driver);
             ret = 0;
         }
+        else
+        {
+            pr_err("Failed to register the I2C OLED client device\n");
+            ret = -1;
+            return ret;
+        }
 
         i2c_put_adapter(etx_i2c_adapter);
+    }
+    else
+    {
+        pr_err("Failed to get I2C adapter\n");
+        ret = -1;
+        return ret;
     }
 
     if(alloc_chrdev_region(&dev, 0, 1, "oled_device_chrdev") < 0)

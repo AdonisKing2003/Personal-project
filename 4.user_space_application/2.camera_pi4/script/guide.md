@@ -270,3 +270,209 @@ Professional cameras:
 
 --> Pi is not suitable for this level.
 
+---
+# LIBCAMERA TUNING JSON
+
+## 1. What is libcamera tuning JSON?
+libcamera tuning JSON is a sensor-specific ISP configuration file.
+It tells the Raspberry Pi ISP firmware:
+- How to interpret RAW sensor data
+- How to tune algorithms like AWB, AE, noise reduction, sharpening
+
+Think of it as:
+` Factory camera calibration + ISP tuning parameters`
+
+It is NOT code
+It is data used by closed ISP algorithms.
+
+## 2. Where tuning JSON sits in the pipeline
+Sensor (RAW Bayer)
+   ↓
+Black Level Correction
+   ↓
+Lens Shading Correction  ← JSON
+   ↓
+AWB                   ← JSON
+   ↓
+Demosaic
+   ↓
+Color Correction (CCM) ← JSON
+   ↓
+Gamma / Tone Mapping   ← JSON
+   ↓
+Noise Reduction        ← JSON
+   ↓
+Sharpening             ← JSON
+   ↓
+Scaler / Output
+
+--> The JSON feeds almost every stage except demosaic logic itself.
+
+## 3. Where the files live
+On Raspberry Pi OS:
+` /usr/share/libcamera/ipa/rpi/ `
+Example:
+` imx219.json `
+` 0v5647.json `
+
+Each file is sensor-specific.
+
+## 4. High-level JSON structure
+Simplified skeleton:
+
+{
+  "version": 2,
+  "target": "bcm2835",
+  "algorithms": [
+    { "rpi.black_level": { ... } },
+    { "rpi.lens_shading": { ... } },
+    { "rpi.awb": { ... } },
+    { "rpi.agc": { ... } },
+    { "rpi.ccm": { ... } },
+    { "rpi.contrast": { ... } },
+    { "rpi.noise": { ... } },
+    { "rpi.sharpen": { ... } }
+  ]
+}
+
+
+Each "rpi.*" entry maps to one ISP algorithm block.
+
+## 5. Example - Black Level Correction
+
+{
+  "rpi.black_level": {
+    "black_level": 4096
+  }
+}
+
+Purpose:
+- Remove sensor offset
+- Prevent lifted blacks / haze
+
+Symptoms if wrong:
+- Washed-out image
+- Gray instead of black
+
+## 6. How tuning is selected at runtime
+libcamera:
+1. Detects sensor (ID via I2C)
+2. Loads matching JSON
+3. Applies controls dynamically per frame
+
+Override tuning file:
+` LIBCAMERA_IPA_CONFIG_PATH=./custom_tuning libcamera-vid -t 0 `
+
+## 7. How to tune safely (Very important)
+Safe workflow:
+1. Copy JSON
+2. Change one block only
+3. Test with:
+` libcamera-hello --info-text `
+4. Compare side-by-side
+
+## Note:
+- What the JSON controls:
+    - It configures the Raspberry Pi hardware ISP
+    - The ISP runs in firmware / hardware blocks
+    - JSON = parameters, not algorithms
+
+- Can we do ISP fully in software?
+    - Yes, but trade:
+        - ❌ Real-time performance
+        - ❌ Power efficiency
+    - For:
+        - ✅ Full control
+        - ✅ Algorithm understanding
+        - ✅ Debuggability
+
+- What "Software ISP" really means:
+    - Software ISP = you implement the pipeline yourself
+RAW Bayer
+  ↓
+Black level correction
+  ↓
+Demosaic
+  ↓
+AWB
+  ↓
+Color correction
+  ↓
+Gamma / tone map
+  ↓
+Noise reduction
+  ↓
+Sharpen
+  ↓
+Scale / crop
+--> Every block is your code.
+
+- How to get RAW data from Pi Camera
+    - Using libcamera (best)
+    ` libcamera-raw -o frame.raw `
+    - This gives you:
+        - 10/12-bit Bayer RAW
+        - No ISP applied
+    - Or capter DNG:
+    ` libcamera-still --raw -o frame.jpg `
+
+- Recommended software ISP learning stack
+    - Minimal toolchain
+        - Python (Numpy)
+        - OpenCV
+        - Matplotlib
+
+Libraries that help
+Purpose	Library
+RAW IO	rawpy
+Demosaic	OpenCV / scikit-image
+Color science	colour-science
+Visualization	matplotlib
+
+Install: `pip install rawpy opencv-python numpy matplotlib colour-science`
+
+## How professionals learning ISP (truth)
+Most ISP engineers:
+- Prototype in software
+- Validate image quality
+- Port ideas to hardware ISP
+
+## Suggested learning roadmap (very practical)
+Phase 1 — Basics
+
+RAW format
+
+Bayer patterns
+
+Demosaic algorithms
+
+Phase 2 — Color
+
+AWB methods (Gray world, White patch)
+
+Color spaces
+
+CCM derivation
+
+Phase 3 — Image quality
+
+Noise models
+
+Sharpen artifacts
+
+Tone mapping
+
+Phase 4 — Advanced
+
+HDR merge
+
+Temporal noise reduction
+
+ISP parameter optimization
+
+# Note:
+
+Sensor	Native RAW
+OV5647	10-bit
+IMX219	10-bit
+IMX477	12-bit

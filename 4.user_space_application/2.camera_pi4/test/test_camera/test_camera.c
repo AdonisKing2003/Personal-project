@@ -4,7 +4,7 @@ char *device_path = "/dev/video0";
 
 int main()
 {
-    Camera cam;
+    st_camera cam;
     if(camera_init(&cam, device_path) != 0) {
         printf("[ERROR]: Camera initialization failed\n");
         return -1;

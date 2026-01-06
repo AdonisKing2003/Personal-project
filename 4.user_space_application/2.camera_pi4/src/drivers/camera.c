@@ -5,8 +5,20 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <sys/mman.h>   // mmap, munmap, PROT_*, MAP_*, MAP_FAILED
 #include "camera.h"
 #include "camera_config.h"
+
+static int xioctl(int fd, int request, void *arg)
+{
+    int r;
+
+    do {
+        r = ioctl(fd, request, arg);
+    } while (r == -1 && errno == EINTR);
+
+    return r;
+}
 
 /**
 * @brief Safe wrapper for ioctl system call.
@@ -62,7 +74,7 @@ int camera_init(st_camera *camera, const char *device_path) {
         close(camera->fd);
         return -1;
     }
-    camera->buffers = calloc(camera->buf_req.count, sizeof(struct buffer));
+    camera->buffers = calloc(camera->buf_req.count, sizeof(camera->buf_req.count));
 
     for (camera->buffer_count = 0; camera->buffer_count < camera->buf_req.count; camera->buffer_count++) {
         struct v4l2_buffer buf;

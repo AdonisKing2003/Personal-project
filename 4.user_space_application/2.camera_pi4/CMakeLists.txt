@@ -16,6 +16,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include/drivers
   ${PROJECT_SOURCE_DIR}/include/core
   ${PROJECT_SOURCE_DIR}/include/utils
+  ${PROJECT_SOURCE_DIR}/config
 )
 
 # Driver source ( HAL )
@@ -25,10 +26,10 @@ set(DRIVER_SOURCES
 
 # Core source
 set(CORE_SOURCES
-  ${PROJECT_SOURCE_DIR}/src/core/app.c
-  ${PROJECT_SOURCE_DIR}/src/core/input_thread.c
-  ${PROJECT_SOURCE_DIR}/src/core/game_logic_thread.c
-  ${PROJECT_SOURCE_DIR}/src/core/render_thread.c
+  # ${PROJECT_SOURCE_DIR}/src/core/app.c
+  # ${PROJECT_SOURCE_DIR}/src/core/input_thread.c
+  # ${PROJECT_SOURCE_DIR}/src/core/game_logic_thread.c
+  # ${PROJECT_SOURCE_DIR}/src/core/render_thread.c
 )
 
 set(APP_SOURCES
@@ -41,17 +42,10 @@ set(TEST_CAM_SOURCES
 
 # Utils source
 set(UTILS_SOURCES
-  ${PROJECT_SOURCE_DIR}/src/utils/utils.c
+  # ${PROJECT_SOURCE_DIR}/src/utils/utils.c
 )
 
 # Build executable from core and drivers
-add_executable(ssd1306_app
-  ${APP_SOURCES}
-  ${CORE_SOURCES}
-  ${DRIVER_SOURCES}
-  ${UTILS_SOURCES}
-)
-
 add_executable(camera_test
   ${TEST_CAM_SOURCES}
   ${CORE_SOURCES}
@@ -60,3 +54,5 @@ add_executable(camera_test
 )
 
 # target_link_libraries(camera_test PRIVATE Threads::Threads)
+# export OE_CMAKE_TOOLCHAIN_FILE=~/workspace/4.SDK/sysroots/x86_64-pokysdk-linux/usr/share/cmake/OEToolchainConfig.cmake
+# cmake -DCMAKE_TOOLCHAIN_FILE=$OE_CMAKE_TOOLCHAIN_FILE ..

@@ -1,0 +1,14 @@
+# Core numerical processing
+numpy>=1.21
+
+# RAW Bayer handling (DNG, metadata, demosaic)
+rawpy>=0.18
+
+# Image processing (denoise, resize, sharpen, save)
+opencv-python>=4.7
+
+# Image I/O (PNG, JPEG, TIFF)
+Pillow>=9.0
+
+# Visualization / debugging
+matplotlib>=3.5

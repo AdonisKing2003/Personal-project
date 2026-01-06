@@ -1,3 +1,19 @@
+:white_check_mark: 
+:warning:
+:camera:
+:x:
+:question:
+:exclamation:
+:battery:
+:fire:
+:gear:
+:electric_plug:
+:bar_chart:
+:beetle:
+:pushpin:
+:memo:
+:link:
+
 # 1. Check camera available
 
 ` libcamera-hello list-cameras `
@@ -157,8 +173,7 @@ rtph264pay name=pay0 pt=96 )"
 
 #### Option B - Ultra simple (libcamera-vid built-in RTSP)
 
-libcamera-vid \
-  --width 1280 --height 720 --framerate 30 \
+libcamera-vid --width 1280 --height 720 --framerate 30 \
   --codec h264 \
   --inline \
   --listen -o tcp://0.0.0.0:8554
@@ -438,7 +453,7 @@ Most ISP engineers:
 - Port ideas to hardware ISP
 
 ## Suggested learning roadmap (very practical)
-Phase 1 — Basics
+- Phase 1 — Basics
 
 RAW format
 
@@ -446,7 +461,7 @@ Bayer patterns
 
 Demosaic algorithms
 
-Phase 2 — Color
+- Phase 2 — Color
 
 AWB methods (Gray world, White patch)
 
@@ -454,7 +469,7 @@ Color spaces
 
 CCM derivation
 
-Phase 3 — Image quality
+- Phase 3 — Image quality
 
 Noise models
 
@@ -462,7 +477,7 @@ Sharpen artifacts
 
 Tone mapping
 
-Phase 4 — Advanced
+- Phase 4 — Advanced
 
 HDR merge
 
@@ -472,7 +487,9 @@ ISP parameter optimization
 
 # Note:
 
-Sensor	Native RAW
-OV5647	10-bit
-IMX219	10-bit
-IMX477	12-bit
+| Sensor  | Native RAW |
+|---------|------------|
+| OV5647  | 10-bit     |
+| IMX219  | 10-bit     |
+| IMX477  | 12-bit     |
+

@@ -1,3 +1,5 @@
+# 1. Test camera with libcamera
+```bash
 root@raspberrypi4-64:~# libcamera-hello list-cameras
 [0:17:39.870824143] [458]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
 [0:17:39.985680127] [459]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
@@ -20,18 +22,26 @@ Stream configuration adjusted
 #6 (30.01 fps) exp 33239.00 ag 8.00 dg 1.00
 #7 (30.01 fps) exp 33239.00 ag 8.00 dg 1.00
 #8 (30.01 fps) exp 33239.00 ag 8.00 dg 1.00
+...
+```
+:white_check_mark: Can detect camera
 
 
-
+# 2. Test camera with cam -l
+```bash
 root@raspberrypi4-64:~# cam -l
 [0:18:36.830680051] [467]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
 [0:18:36.871035709] [468]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
 [0:18:36.873631415] [468]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
 Available cameras:
 1: 'ov5647' (/base/soc/i2c0mux/i2c@1/ov5647@36)
+...
+```
 
+:white_check_mark: Pi4 can recognize camera
 
-
+# 3. Test gstreamer
+```bash
 root@raspberrypi4-64:~# gst-launch-1.0 videotestsrc ! videoconvert ! autovideosink
 Setting pipeline to PAUSED ...
 warning: queue 0x7fac000be0 destroyed while proxies still attached:
@@ -51,29 +61,23 @@ New clock: GstSystemClock
 Interrupt: Stopping pipeline ...
 Execution ended after 0:00:32.698699355
 Setting pipeline to NULL ...
+...
+```
 
-
+```bash
 gst-launch-1.0 videotestsrc ! videoconvert ! autovideosink
+```
 
 - Uses videotestsrc, which is a synthetic pattern generator; it does not touch the Pi camera at all.
 - autovideosink on a modern desktop usually picks a Wayland-capable sink, so any Wayland-related warnings are about the display backend only.
 - The 0:00:00.0 / 99:99:99. and the clean shutdown after Ctrl‑C are expected gst-launch-1.0 status messages.
 ​
-videotestsrc ! videoconvert ! autovideosink only checks that GStreamer runs and can render video to your display; it never touches the Pi camera driver or libcamera stack.
+:white_check_mark: Gstreamer oke, but do not have **libcamerasrc**
+👉 videotestsrc ! videoconvert ! autovideosink only checks that GStreamer runs and can render video to your display; it never touches the Pi camera driver or libcamera stack.
 
-
-root@raspberrypi4-64:~# libcamera-hello --list-cameras
-Available cameras
------------------
-0 : ov5647 [2592x1944 10-bit GBRG] (/base/soc/i2c0mux/i2c@1/ov5647@36)
-    Modes: 'SGBRG10_CSI2P' : 640x480 [58.92 fps - (16, 0)/2560x1920 crop]
-                             1296x972 [46.34 fps - (0, 0)/2592x1944 crop]
-                             1920x1080 [32.81 fps - (348, 434)/1928x1080 crop]
-                             2592x1944 [15.63 fps - (0, 0)/2592x1944 crop]
-
-root@raspberrypi4-64:~# 
-
-
+# 4. Test v4l2
+**1. Check v4l2**
+```bash
 root@raspberrypi4-64:~/workspace# v4l2-ctl --list-devices
 bcm2835-codec-decode (platform:bcm2835-codec):
 	/dev/video10
@@ -102,10 +106,10 @@ unicam (platform:fe801000.csi):
 rpivid (platform:rpivid):
 	/dev/video19
 	/dev/media2
-
-
-
-
+...
+```
+**2. Test v4l2**
+```bash
 root@raspberrypi4-64:~/workspace# gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! autovideosink
 Setting pipeline to PAUSED ...
 warning: queue 0x7f7c000be0 destroyed while proxies still attached:
@@ -136,6 +140,8 @@ warning: queue 0x7f7c0dae30 destroyed while proxies still attached:
   wl_compositor@10 still attached
   wl_registry@14 still attached
 Freeing pipeline ...
+...
+```
 
 hits memory/buffer‑pool negotiation errors because /dev/video0 in this libcamera‑based stack is not a simple UVC‑style capture node designed for direct use by applications like GStreamer.
 
@@ -149,22 +155,24 @@ Yes, libcamera-still ultimately talks through the same hardware path that /dev/v
 
 But no, libcamera-still is not just “a thin wrapper over /dev/video0” in the way v4l2src is; it uses libcamera’s full pipeline and controls, while v4l2src tries to use /dev/video0 directly and fails on this modern stack.
 ​
+:warning: **Error**
 
-
-
+# 5. Get image from camera using libcamera
+```bash
 libcamera-still -n -t 1000 -o test.jpg
+```
 
 -n disables preview (no window).
-
 -t 1000 makes it run for 1 second.
-Let it finish by itself; do not press Ctrl‑C. Then check for test.jpg in the current directory.
+:warning:**Let it finish by itself; do not press Ctrl‑C. Then check for test.jpg in the current directory.**
 
 
 
-:warning: stream from pi to laptop
+# 6. Stream from pi to laptop
 
-on ubbuntu
+**1. Setup On ubbuntu**
 
+```bash
 sudo apt update
 sudo apt install \
   gstreamer1.0-plugins-base \
@@ -172,21 +180,22 @@ sudo apt install \
   gstreamer1.0-plugins-bad \
   gstreamer1.0-plugins-ugly \
   gstreamer1.0-libav
+```
 
-
-
-On pi4:
-
+**2. Start stream on pi4:**
+```bash
 root@raspberrypi4-64:~/workspace# libcamera-vid -t 0   --width 1280 --height 720 --framerate 25   --codec h264 --bitrate 2000000 -o - | gst-launch-1.0 -v fdsrc ! h264parse ! rtph264pay config-interval=1 pt=96 ! udpsink host=10.42.0.1 port=5000
-
-On ubuntu:
-
+```
+**3. Get stream on ubuntu:**
+```bash
 adonisking@adonisking-Nitro-AN515-55:~$ gst-launch-1.0 -v udpsrc port=5000 caps="application/x-rtp,media=video,encoding-name=H264,payload=96" ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink
-
+```
 ---> Test OK, can stream
 
 
-:exclamanation:
+# 7. Test camera app
+```bash
 root@raspberrypi4-64:~/workspace# ./camera_test 
 malloc(): corrupted top size
 Aborted (core dumped)
+```

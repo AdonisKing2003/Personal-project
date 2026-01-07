@@ -9,6 +9,10 @@ if(NOT CMAKE_TOOLCHAIN_FILE)
 endif()
 
 find_package(Threads REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
+pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
+pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
 
 # Include directories for headers
 include_directories(
@@ -40,6 +44,10 @@ set(TEST_CAM_SOURCES
   ${PROJECT_SOURCE_DIR}/test/test_camera/test_camera.c
 )
 
+set(TEST_GSTREAMER_SOURCES
+  ${PROJECT_SOURCE_DIR}/test/test_camera/test_gstreamer.c
+)
+
 # Utils source
 set(UTILS_SOURCES
   # ${PROJECT_SOURCE_DIR}/src/utils/utils.c
@@ -53,6 +61,25 @@ add_executable(camera_test
   ${UTILS_SOURCES}
 )
 
-# target_link_libraries(camera_test PRIVATE Threads::Threads)
+add_executable(gstreamer_test
+  ${TEST_GSTREAMER_SOURCES}
+  ${CORE_SOURCES}
+  ${DRIVER_SOURCES}
+  ${UTILS_SOURCES}
+)
+
+target_link_libraries(camera_test PRIVATE Threads::Threads)
+
+target_link_libraries(gstreamer_test PRIVATE 
+  Threads::Threads
+  ${GSTREAMER_LIBRARIES}
+  ${GSTREAMER_APP_LIBRARIES}
+  ${GSTREAMER_VIDEO_LIBRARIES}
+)
+
+# target_compile_options(gstreamer_test PRIVATE
+#   ${GSTREAMER_CFLAGS_OTHER}
+# )
+
 # export OE_CMAKE_TOOLCHAIN_FILE=~/workspace/4.SDK/sysroots/x86_64-pokysdk-linux/usr/share/cmake/OEToolchainConfig.cmake
 # cmake -DCMAKE_TOOLCHAIN_FILE=$OE_CMAKE_TOOLCHAIN_FILE ..

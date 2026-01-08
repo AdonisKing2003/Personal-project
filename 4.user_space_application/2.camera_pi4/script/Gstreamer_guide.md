@@ -1,3 +1,15 @@
+# Compare Using C (ISP RAW) with GStreamer
+
+| Criteria | RAW C ISP | GStreamer |
+| --- | --- | --- |
+| **Difficulty** | Very hard - need deep V4L2, ISP pipeline knowledge | Easier - use existing plugins |
+| **Development Time** | Long (weeks/month) | Fast (hours/days) |
+| **Performance** | Best (if coded well) | Good, but has overhead |
+| **Flexibility** | Completely flexible | Limited by available plugins |
+| **Hardware Acceleration** | Must integrate manually | Plugin support available (if exists) |
+| **Debugging** | Hard to debug | Good debugging tools |
+| **Reusability** | Hard to reuse | Easy to combine and extend |
+
 ```bash
 # Ví dụ: Phát video từ file
 gst-launch-1.0 filesrc location=video.mp4 ! decodebin ! autovideosink

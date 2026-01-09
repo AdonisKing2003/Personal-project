@@ -97,57 +97,109 @@ OpenCV tốt cho computer vision, không phải cho media processing pipeline!
 Tốt! Tôi sẽ đưa ra các use cases thực tế cho streaming app với GStreamer:
 1. Security Camera System (Camera an ninh)
 Features:
-┌─────────────────────────────────────────────────┐
-│         Security Camera Dashboard               │
-├─────────────────────────────────────────────────┤
-│  📹 Live View (4 cameras grid)                  │
-│  🔴 Motion Detection + Alert                    │
-│  💾 Auto Recording when motion detected         │
-│  📊 Playback recorded videos                    │
-│  📱 Mobile app streaming (RTSP)                 │
-│  🌙 Night mode toggle                           │
-│  📸 Snapshot capture                            │
-│  ☁️  Upload to cloud storage                    │
-└─────────────────────────────────────────────────┘
-GStreamer Pipeline:
-c// Multi-camera với motion detection
-"v4l2src device=/dev/video0 name=cam1 ! "
-"video/x-raw,width=1920,height=1080 ! "
-"tee name=t1 ! "
+Hướng dẫn setup trên Pi4:
+1. Cài đặt dependencies:
+bash# Update system
+sudo apt update
+sudo apt upgrade
 
-// Branch 1: Live display
-"queue ! videoscale ! video/x-raw,width=640,height=480 ! "
-"videoconvert ! autovideosink "
+# Install GStreamer
+sudo apt install -y \
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev
 
-// Branch 2: Motion detection
-"t1. ! queue ! motioncells ! fakesink "
+# Install Pi Camera support (libcamera)
+sudo apt install -y \
+    libcamera-dev \
+    libcamera-apps \
+    gstreamer1.0-libcamera
 
-// Branch 3: Recording (when motion)
-"t1. ! queue ! x264enc ! mp4mux ! filesink location=cam1_%Y%m%d_%H%M%S.mp4"
+# Build tools
+sudo apt install -y build-essential pkg-config
+2. Enable Pi Camera:
+bash# Enable camera in raspi-config
+sudo raspi-config
+# Navigate to: Interface Options -> Camera -> Enable
 
-// Branch 4: RTSP streaming
-"t1. ! queue ! x264enc ! rtph264pay ! udpsink host=192.168.1.100 port=5000"
-Application Logic Functions:
-c// Core functions
-void camera_init_multi(int num_cameras);
-void motion_detection_callback(int camera_id, MotionData *data);
-void start_recording(int camera_id);
-void stop_recording(int camera_id);
-void send_notification(const char *message);
-void upload_to_cloud(const char *filename);
-void switch_camera_layout(LayoutType layout); // Grid, PIP, fullscreen
+# Reboot
+sudo reboot
+3. Test Pi Camera:
+bash# Test with libcamera
+libcamera-hello
 
-// Playback functions
-void list_recordings(RecordingList *list);
-void playback_video(const char *filename);
-void delete_old_recordings(int days_old);
+# Test with GStreamer
+gst-launch-1.0 libcamerasrc ! autovideosink
+4. Build và chạy:
+bash# Create project directory
+mkdir ~/security_camera
+cd ~/security_camera
 
-// Configuration
-void set_motion_sensitivity(int camera_id, int level);
-void set_recording_quality(int camera_id, QualityLevel quality);
-void set_night_mode(int camera_id, bool enabled);
+# Save code as picam_security.c
+
+# Build
+gcc picam_security.c -o picam_security \
+    $(pkg-config --cflags --libs gstreamer-1.0 gstreamer-app-1.0) \
+    -pthread
+
+# Run
+./picam_security
 ```
 
+---
+
+## Simplified Features (1 camera):
+```
+┌─────────────────────────────────────────────────┐
+│    Single Pi Camera Security System             │
+├─────────────────────────────────────────────────┤
+│  📹 Live View (preview window)                  │
+│  🔴 Motion Detection                            │
+│  💾 Auto Recording on motion                    │
+│  📸 Auto Snapshot on motion                     │
+│  📊 Statistics (events, recordings)             │
+│  ⏹️  Clean stop with Ctrl+C                     │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## Pipeline Visualization:
+```
+Pi Camera (libcamerasrc)
+    ↓
+1920x1080 @ 30fps
+    ↓
+┌───────────────────────────────────────────┐
+│              TEE (split stream)           │
+└───────────────────────────────────────────┘
+    ↓           ↓              ↓
+    │           │              │
+Branch 1    Branch 2       Branch 3
+    ↓           ↓              ↓
+Preview    Motion         Encoding
+(640x480) Detection      (H.264)
+    ↓        (RGB)            ↓
+Display    (320x240)      Ready for
+Window    Callback        Recording
+          ↓
+      On Motion:
+      1. Take snapshot
+      2. Start recording
+
+Headless mode (không cần màn hình):
+Nếu Pi4 chạy headless (không màn hình), comment out preview branch:
+c// Comment out trong pipeline_desc:
+// "t. ! queue ! videoscale ! "
+// "video/x-raw,width=%d,height=%d ! "
+// "videoconvert ! autovideosink "
+Hoặc đổi thành fakesink:
+c"t. ! queue ! fakesink " // Just discard frames
 ---
 
 ## 2. Video Conference App (Zoom/Teams clone đơn giản)

@@ -46,19 +46,62 @@ int camera_init(st_camera *camera, const char *device_path) {
         perror("[ERROR]: Failed to open camera device");
         return -1;
     }
+    printf("Camera device opened successfully\n");
 
-    // Set camera format
+    // Query current format first
     memset(&camera->fmt, 0, sizeof(struct v4l2_format));
     camera->fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    
+    if (ioctl(camera->fd, VIDIOC_G_FMT, &camera->fmt) < 0) {
+        perror("[ERROR]: Failed to get camera format");
+        close(camera->fd);
+        return -1;
+    }
+    
+    printf("[DEBUG]: Current format: %c%c%c%c\n",
+        camera->fmt.fmt.pix.pixelformat & 0xFF,
+        (camera->fmt.fmt.pix.pixelformat >> 8) & 0xFF,
+        (camera->fmt.fmt.pix.pixelformat >> 16) & 0xFF,
+        (camera->fmt.fmt.pix.pixelformat >> 24) & 0xFF);
+
+    // Set desired resolution but keep the pixel format
     camera->fmt.fmt.pix.width = CAMERA_RESOLUTION_WIDTH;
     camera->fmt.fmt.pix.height = CAMERA_RESOLUTION_HEIGHT;
-    camera->fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV; // Assuming YUYV format
-    camera->fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+    camera->fmt.fmt.pix.field = V4L2_FIELD_NONE;
+    // camera->fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR10;
+    // Don't change pixelformat - use what the driver provides
 
     if (ioctl_with_retry(camera->fd, VIDIOC_S_FMT, &camera->fmt) < 0) {
         perror("[ERROR]: Failed to set camera format");
         close(camera->fd);
         return -1;
+    }
+    else {
+        printf("Camera format set successfully: %dx%d\n", 
+               camera->fmt.fmt.pix.width, camera->fmt.fmt.pix.height);
+        printf("[DEBUG]: Driver format: %c%c%c%c\n",
+            camera->fmt.fmt.pix.pixelformat & 0xFF,
+            (camera->fmt.fmt.pix.pixelformat >> 8) & 0xFF,
+            (camera->fmt.fmt.pix.pixelformat >> 16) & 0xFF,
+            (camera->fmt.fmt.pix.pixelformat >> 24) & 0xFF);
+
+        printf("[DEBUG]: Field: %d\n", camera->fmt.fmt.pix.field);
+        printf("[DEBUG]: Field enum value = %d\n", camera->fmt.fmt.pix.field);
+
+        switch (camera->fmt.fmt.pix.field) {
+        case V4L2_FIELD_NONE:
+            printf("[DEBUG]: Field = NONE\n");
+            break;
+        case V4L2_FIELD_INTERLACED:
+            printf("[DEBUG]: Field = INTERLACED\n");
+            break;
+        case V4L2_FIELD_ANY:
+            printf("[DEBUG]: Field = ANY\n");
+            break;
+        default:
+            printf("[DEBUG]: Field = OTHER (%d)\n",
+                camera->fmt.fmt.pix.field);
+        }
     }
 
     // Request buffers
@@ -74,7 +117,10 @@ int camera_init(st_camera *camera, const char *device_path) {
         close(camera->fd);
         return -1;
     }
-    camera->buffers = calloc(camera->buf_req.count, sizeof(camera->buf_req.count));
+    else {
+        printf("Requested %d buffers successfully\n", camera->buf_req.count);
+    }
+    camera->buffers = calloc(camera->buf_req.count, sizeof(struct buffer));
 
     for (camera->buffer_count = 0; camera->buffer_count < camera->buf_req.count; camera->buffer_count++) {
         struct v4l2_buffer buf;
@@ -102,7 +148,66 @@ int camera_init(st_camera *camera, const char *device_path) {
             return -1;
         }
     }
+    printf("All buffers queued successfully\n");
 
+    printf("[DEBUG]: Buffers requested: %u\n", camera->buf_req.count);
+    printf("[DEBUG]: Buffers queued: %u\n", camera->buffer_count);
+    struct v4l2_capability cap;
+    if (ioctl(camera->fd, VIDIOC_QUERYCAP, &cap) == -1) {
+        perror("[ERROR]: Querying Capabilities");
+        return -1;
+    }
+    
+    printf("[DEBUG]: Driver: %s\n", cap.driver);
+    printf("[DEBUG]: Card: %s\n", cap.card);
+    printf("[DEBUG]: Capabilities: 0x%08x\n", cap.capabilities);
+    
+    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+        printf("[ERROR]: Device does not support video capture\n");
+        return -1;
+    }
+    
+    if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
+        printf("[ERROR]: Device does not support streaming\n");
+        return -1;
+    }
+
+    // ADD THIS: Verify format before streaming
+    struct v4l2_format verify_fmt;
+    memset(&verify_fmt, 0, sizeof(verify_fmt));
+    verify_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    
+    if (ioctl(camera->fd, VIDIOC_G_FMT, &verify_fmt) == -1) {
+        perror("[ERROR]: Failed to verify format");
+        return -1;
+    }
+    
+    printf("[DEBUG]: Verified format before streaming:\n");
+    printf("  Width: %u\n", verify_fmt.fmt.pix.width);
+    printf("  Height: %u\n", verify_fmt.fmt.pix.height);
+    printf("  Pixelformat: %c%c%c%c\n",
+        verify_fmt.fmt.pix.pixelformat & 0xFF,
+        (verify_fmt.fmt.pix.pixelformat >> 8) & 0xFF,
+        (verify_fmt.fmt.pix.pixelformat >> 16) & 0xFF,
+        (verify_fmt.fmt.pix.pixelformat >> 24) & 0xFF);
+    printf("  Bytesperline: %u\n", verify_fmt.fmt.pix.bytesperline);
+    printf("  Sizeimage: %u\n", verify_fmt.fmt.pix.sizeimage);
+
+
+    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (ioctl(camera->fd, VIDIOC_STREAMON, &type) == -1) {
+        perror("[ERROR]: STREAMON");
+        
+        // ADD THIS: More detailed error info
+        printf("[ERROR]: errno = %d (%s)\n", errno, strerror(errno));
+        printf("[ERROR]: This usually means:\n");
+        printf("  - Wrong video device (try /dev/video1, /dev/video2, etc.)\n");
+        printf("  - Format not fully supported\n");
+        printf("  - Device doesn't support MMAP streaming\n");
+        
+        return -1;
+    }
+    printf("Camera streaming started\n");
     return 0;
 }
 
@@ -116,6 +221,7 @@ Requeue (QBUF) → buffer goes back to the driver for reuse.
 int camera_start_capture(st_camera *camera, uint8_t **frame, size_t *size) {
     struct v4l2_buffer buf;
     memset(&buf, 0, sizeof(buf));
+    printf("Starting camera capture...\n");
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
 
@@ -123,6 +229,9 @@ int camera_start_capture(st_camera *camera, uint8_t **frame, size_t *size) {
     if (ioctl_with_retry(camera->fd, VIDIOC_DQBUF, &buf) == -1) {
         perror("[ERROR]: Dequeue Buffer");
         return -1;
+    }
+    else {
+        printf("Buffer dequeued successfully\n");
     }
 
     // Process the frame (for demonstration, we just print the buffer index)

@@ -562,5 +562,6 @@ gcc security_camera.c -o security_camera \
 
 # Run with multiple cameras
 ./security_camera 2
+```
 
 Bạn thấy Security Camera project này có phù hợp không? Hay bạn muốn làm app khác trong list?

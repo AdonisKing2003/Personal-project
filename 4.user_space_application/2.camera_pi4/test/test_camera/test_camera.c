@@ -9,6 +9,9 @@ int main()
         printf("[ERROR]: Camera initialization failed\n");
         return -1;
     }
+    else {
+        printf("Camera initialized successfully\n");
+    }
     uint8_t *frame;
     size_t size;
     if(camera_start_capture(&cam, &frame, &size) != 0) {

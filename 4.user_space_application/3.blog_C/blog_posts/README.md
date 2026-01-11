@@ -17,6 +17,14 @@ cp /path/to/your/*.md blog_posts/
 
 ---
 
+## Install library for cmark
+```bash
+sudo apt update
+sudo apt install libcmark-dev
+sudo apt install libcmark-gfm-dev
+sudo apt-get install libcmark-gfm-dev libcmark-gfm-extensions-dev
+```
+
 ## Setup systemd service (Chạy 24/7):
 ````bash
 sudo nano /etc/systemd/system/blog-server.service

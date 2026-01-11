@@ -9,10 +9,10 @@ if(NOT CMAKE_TOOLCHAIN_FILE)
 endif()
 
 find_package(Threads REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
-pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
-pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
+# find_package(PkgConfig REQUIRED)
+# pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
+# pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
+# pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
 
 # Include directories for headers
 include_directories(
@@ -41,7 +41,7 @@ set(APP_SOURCES
 )
 
 set(TEST_CAM_SOURCES
-  ${PROJECT_SOURCE_DIR}/test/test_camera/test_camera.c
+  ${PROJECT_SOURCE_DIR}/test/test_camera/test_camera_with_libcamera.c
 )
 
 set(TEST_GSTREAMER_SOURCES

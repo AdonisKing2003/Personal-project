@@ -576,3 +576,36 @@ Try the updated code first (with complete frame reads). If that doesn't fix it, 
 
 Output from the program showing how many bytes each frame reads
 A few consecutive frames converted to JPEG so I can see if the corruption pattern changes
+
+
+## Wrapper C++ libcamera API
+Tóm tắt lợi ích của approach này:
+✅ Ưu điểm:
+
+Pure C API - Code của bạn viết hoàn toàn bằng C, dễ tích hợp
+Full control - Bạn có thể custom mọi thứ trong wrapper C++
+Performance - Không có overhead của subprocess như giải pháp 2
+Future-proof - libcamera là hướng đi chính thức của Raspberry Pi
+Rich features - Có thể thêm exposure, gain, white balance, HDR, etc.
+
+⚠️ Lưu ý:
+
+Build phức tạp hơn - Cần compiler C++ và libcamera-dev
+Code size lớn hơn - Wrapper C++ thêm ~500KB
+Memory management - Phải careful với mmap/munmap
+
+🚀 Mở rộng thêm:
+Bạn có thể thêm vào wrapper:
+
+Hardware encoding (H.264/H.265) qua V4L2 encoder
+ISP controls: AWB, AEC, AGC, HDR
+Multiple camera support
+Zero-copy với DMA buffers
+GPU processing với OpenGL ES
+
+Bạn muốn tôi thêm feature nào vào wrapper không? Ví dụ:
+
+H.264 encoding?
+OpenCV integration?
+Network streaming?
+Multi-camera?

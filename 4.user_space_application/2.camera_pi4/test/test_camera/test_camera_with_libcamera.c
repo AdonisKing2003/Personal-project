@@ -37,13 +37,33 @@ int capture_image_simple(const char *output_file) {
     return 0;
 }
 
+int validate_yuv_frame(uint8_t *buffer, int width, int height) {
+    // YUV420: Y plane phải có giá trị hợp lý (16-235 cho video)
+    // U,V planes có thể check range
+    
+    size_t y_size = width * height;
+    
+    // Quick sanity check
+    if (buffer[0] < 5 || buffer[0] > 250) {
+        return 0;  // Invalid
+    }
+    
+    if (buffer[y_size] < 5 || buffer[y_size] > 250) {
+        return 0;  // Invalid U plane start
+    }
+    
+    return 1;  // Looks valid
+}
+
 int capture_video_frames(const char *output_file, int duration_ms) {
     char cmd[512];
     
     // Capture video using libcamera-vid
+    // Thêm flag --verbose vào libcamera-vid để có frame info
     snprintf(cmd, sizeof(cmd),
-             "libcamera-vid -o %s --width 640 --height 480 -t %d --nopreview --codec yuv420 2>/dev/null",
-             output_file, duration_ms);
+         "libcamera-vid -o - --width 640 --height 480 "
+         "-t %d --nopreview --codec yuv420 --flush 2>/dev/null",
+         duration_ms);
     
     printf("Capturing video...\n");
     int ret = system(cmd);
@@ -79,25 +99,71 @@ camera_stream_t* camera_stream_start(int width, int height) {
         free(stream);
         return NULL;
     }
+
+    // DISCARD first frame for sync
+    uint8_t *discard_buffer = malloc(stream->frame_size);
+    if (discard_buffer) {
+        fread(discard_buffer, 1, stream->frame_size, stream->pipe);
+        free(discard_buffer);
+    }
     
     printf("Camera stream started: %dx%d\n", width, height);
     return stream;
 }
 
 int camera_stream_read_frame(camera_stream_t *stream, uint8_t *buffer) {
-    if (!stream || !stream->pipe || !buffer) {
+    size_t total_read = 0;
+    int retry_count = 0;
+    const int MAX_RETRIES = 10;
+    static int frame_count = 0;
+    printf("Reading frame %d: expecting %zu bytes\n", 
+        ++frame_count, stream->frame_size);
+    
+    while (total_read < stream->frame_size) {
+        size_t remaining = stream->frame_size - total_read;
+        size_t bytes_read = fread(
+            buffer + total_read,
+            1,
+            remaining,
+            stream->pipe
+        );
+        
+        if (bytes_read == 0) {
+            if (feof(stream->pipe)) {
+                fprintf(stderr, "End of stream\n");
+                return -1;
+            }
+            
+            if (ferror(stream->pipe)) {
+                fprintf(stderr, "Stream error\n");
+                return -1;
+            }
+            
+            // Data not ready yet
+            if (++retry_count >= MAX_RETRIES) {
+                fprintf(stderr, "Timeout reading frame\n");
+                return -1;
+            }
+            
+            usleep(5000);  // Wait 5ms
+            continue;
+        }
+        
+        total_read += bytes_read;
+        retry_count = 0;  // Reset on successful read
+    }
+    printf("Frame %d: read %zu bytes (Y[0]=%d, U[0]=%d)\n",
+       frame_count, total_read, 
+       buffer[0], 
+       buffer[stream->width * stream->height]);
+       
+    // Optional: Validate frame
+    if (!validate_yuv_frame(buffer, stream->width, stream->height)) {
+        fprintf(stderr, "Invalid frame detected\n");
         return -1;
     }
-    
-    size_t bytes_read = fread(buffer, 1, stream->frame_size, stream->pipe);
-    if (bytes_read != stream->frame_size) {
-        if (feof(stream->pipe)) {
-            fprintf(stderr, "Camera stream ended\n");
-            return -1;
-        }
-        fprintf(stderr, "Incomplete frame read: %zu/%zu bytes\n", 
-                bytes_read, stream->frame_size);
-        return -1;
+    else {
+        printf("[INFO]: Validate yuv frame passed!\n");
     }
     
     return 0;

@@ -252,7 +252,8 @@ Your code just calls them via system() or popen() - no headers needed!
 
 The Simple C Implementation Explained
 Method 1: Capture a Single Image
-cint capture_image_simple(const char *output_file) {
+```c
+int capture_image_simple(const char *output_file) {
     char cmd[512];
     
     // Build the command string
@@ -271,6 +272,7 @@ cint capture_image_simple(const char *output_file) {
     printf("Image captured to: %s\n", output_file);
     return 0;
 }
+```
 What happens:
 
 system() spawns a shell and runs libcamera-still
@@ -279,10 +281,13 @@ It captures one frame and saves it to the file
 Returns 0 on success
 
 Usage:
-ccapture_image_simple("photo.jpg");
+```c
+capture_image_simple("photo.jpg");
 // Now you have photo.jpg you can read/process
+```
 Method 2: Capture Video to File
-cint capture_video_frames(const char *output_file, int duration_ms) {
+```c
+int capture_video_frames(const char *output_file, int duration_ms) {
     char cmd[512];
     
     snprintf(cmd, sizeof(cmd),
@@ -292,6 +297,7 @@ cint capture_video_frames(const char *output_file, int duration_ms) {
     int ret = system(cmd);
     return (ret == 0) ? 0 : -1;
 }
+```
 What happens:
 
 libcamera-vid captures video for the specified duration
@@ -299,10 +305,13 @@ Saves raw YUV420 frames to a file
 You can then read the file and process frames
 
 Usage:
-ccapture_video_frames("video.yuv", 2000);  // 2 seconds
+```c
+capture_video_frames("video.yuv", 2000);  // 2 seconds
 // Now you have video.yuv with raw frame data
+```
 Method 3: Stream Frames Continuously (Most Useful)
-ctypedef struct {
+```c
+typedef struct {
     FILE *pipe;           // Pipe to libcamera-vid process
     int width;
     int height;
@@ -327,6 +336,7 @@ camera_stream_t* camera_stream_start(int width, int height) {
     
     return stream;
 }
+```
 What happens:
 
 popen() starts libcamera-vid as a child process
@@ -335,7 +345,8 @@ popen() starts libcamera-vid as a child process
 We get a FILE* pipe we can read from
 
 Reading frames:
-cint camera_stream_read_frame(camera_stream_t *stream, uint8_t *buffer) {
+```c
+int camera_stream_read_frame(camera_stream_t *stream, uint8_t *buffer) {
     // Read exactly one frame worth of data
     size_t bytes_read = fread(buffer, 1, stream->frame_size, stream->pipe);
     
@@ -345,8 +356,10 @@ cint camera_stream_read_frame(camera_stream_t *stream, uint8_t *buffer) {
     
     return 0;  // Success - buffer now contains one YUV420 frame
 }
+```
 Complete usage example:
-c// Start streaming
+```c
+// Start streaming
 camera_stream_t *stream = camera_stream_start(640, 480);
 
 // Allocate buffer for one frame
@@ -390,14 +403,16 @@ camera_stream_stop(stream);
 ## Frame Data Format (YUV420)
 
 When you read a frame, you get raw YUV420 data:
-```
+```bash
 For 640x480:
 - Y plane:  640 × 480 = 307,200 bytes (luminance)
 - U plane:  320 × 240 =  76,800 bytes (chrominance)
 - V plane:  320 × 240 =  76,800 bytes (chrominance)
 Total:                  460,800 bytes (640×480×1.5)
+```
 To convert to RGB or process:
-c// Y starts at offset 0
+```c
+// Y starts at offset 0
 uint8_t *Y = frame;
 
 // U starts after Y
@@ -418,6 +433,7 @@ for (int i = 0; i < width * height; i++) {
     
     // Clamp and use r, g, b values...
 }
+```
 
 Summary
 The Problem: Standard V4L2 doesn't work on Raspberry Pi due to complex media pipeline requirements.
@@ -463,7 +479,9 @@ Fix 1: Ensure Complete Frame ReadsCamera Capture with libcamera C APICode ∙�
     
     // Read frame in chunks to ensure we get complete data
     size_t total_read = 0;
-    while (totFix 2: Use Larger Pipe Buffer
+    while (to
+
+Fix 2: Use Larger Pipe Buffer
 Alternatively, configure the pipe with a larger buffer to reduce partial reads:Camera Capture with libcamera C APICode ∙ Version 5 camera_stream_t* camera_stream_start(int width, int height) {
     camera_stream_t *stream = malloc(sizeof(camera_stream_t));
     if (!stream) {
@@ -472,7 +490,9 @@ Alternatively, configure the pipe with a larger buffer to reduce partial reads:C
     
     stream->width = width;
     stream->height = height;
-    stream->frame_Fix 3: Save Multiple Frames and Check Them
+    stream->frame_
+
+Fix 3: Save Multiple Frames and Check Them
 Add debug code to save several frames and check if they're all corrupted or just some:
 c// In your main loop, save first 10 frames
 if (frame_count <= 10) {

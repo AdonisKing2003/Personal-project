@@ -178,6 +178,22 @@ target_link_libraries(test_wrapper_stress PRIVATE
 )
 
 # ============================================================================
+# Build Sample app
+# ============================================================================
+set(SAMPLE_APP_SOURCES
+  ${PROJECT_SOURCE_DIR}/examples/sample_camera_app.c
+)
+
+add_executable(sample_camera_app
+  ${SAMPLE_APP_SOURCES}
+)
+
+target_link_libraries(sample_camera_app PRIVATE
+  rpi_camera_wrapper
+  Threads::Threads
+)
+
+# ============================================================================
 # Installation rules
 # ============================================================================
 install(TARGETS rpi_camera_wrapper

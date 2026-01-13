@@ -3,13 +3,19 @@
 // ============================================================================
 
 #include <libcamera/libcamera.h>
+#include "rpi_camera.h"
 #include <sys/mman.h>
 #include <iostream>
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <map>
 
 using namespace libcamera;
+
+// Global map to store camera pointers by request cookie
+static std::map<uint64_t, rpi_camera_t*> g_camera_map;
+static uint64_t g_next_cookie = 1;
 
 struct rpi_camera_t {
     std::unique_ptr<CameraManager> cm;
@@ -27,6 +33,8 @@ struct rpi_camera_t {
     
     std::atomic<bool> running;
     std::thread capture_thread;
+
+    uint64_t cookie; // Add cookie to store our identifier
     
     ~rpi_camera_t() {
         if (allocator) delete allocator;
@@ -48,9 +56,18 @@ static PixelFormat to_libcamera_format(rpi_format_t fmt) {
 }
 
 // Request completion handler
-static void request_complete(Request *request, rpi_camera_t *cam) {
+static void request_complete(Request *request) {
     if (request->status() == Request::RequestCancelled)
         return;
+
+    // Get camera from global map using cookie
+     uint64_t cookie = request->cookie();
+     auto it = g_camera_map.find(cookie);
+     if (it == g_camera_map.end()) {
+         std::cerr << "Camera not found for cookie: " << cookie << std::endl;
+         return;
+     }
+     rpi_camera_t *cam = it->second;
 
     const Request::BufferMap &buffers = request->buffers();
     
@@ -100,7 +117,11 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     cam->callback = nullptr;
     cam->userdata = nullptr;
     cam->allocator = nullptr;
-    
+    cam->cookie = g_next_cookie++; // Assign unique cookie
+
+    // Register in global map
+    g_camera_map[cam->cookie] = cam;
+
     // Khởi tạo CameraManager
     cam->cm = std::make_unique<CameraManager>();
     int ret = cam->cm->start();
@@ -162,7 +183,7 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
         cam->allocator->buffers(stream);
     
     for (unsigned int i = 0; i < buffers.size(); ++i) {
-        std::unique_ptr<Request> request = cam->camera->createRequest();
+        std::unique_ptr<Request> request = cam->camera->createRequest(cam->cookie);
         if (!request) {
             std::cerr << "Failed to create request" << std::endl;
             delete cam;
@@ -192,9 +213,7 @@ int rpi_camera_start(rpi_camera_t *cam, rpi_frame_callback_t callback, void *use
     cam->running = true;
     
     // Connect request completion signal
-    cam->camera->requestCompleted.connect(
-        [cam](Request *request) { request_complete(request, cam); }
-    );
+    cam->camera->requestCompleted.connect(request_complete);
     
     // Start camera
     int ret = cam->camera->start();
@@ -233,6 +252,9 @@ void rpi_camera_destroy(rpi_camera_t *cam) {
         rpi_camera_stop(cam);
     }
     
+    /* Remove from global map */
+    g_camera_map.erase(cam->cookie);
+
     cam->camera->release();
     cam->cm->stop();
     
@@ -245,7 +267,10 @@ int rpi_camera_set_brightness(rpi_camera_t *cam, float value) {
     
     ControlList controls;
     controls.set(controls::Brightness, value);
-    cam->camera->controls.set(controls);
+    
+    // Create a request and add controls
+    Request *request = cam->requests[0].get();
+    request->controls() = controls;
     
     return 0;
 }
@@ -255,7 +280,9 @@ int rpi_camera_set_contrast(rpi_camera_t *cam, float value) {
     
     ControlList controls;
     controls.set(controls::Contrast, value);
-    cam->camera->controls.set(controls);
+    
+    Request *request = cam->requests[0].get();
+    request->controls() = controls;
     
     return 0;
 }
@@ -265,7 +292,9 @@ int rpi_camera_set_exposure(rpi_camera_t *cam, int microseconds) {
     
     ControlList controls;
     controls.set(controls::ExposureTime, microseconds);
-    cam->camera->controls.set(controls);
+    
+    Request *request = cam->requests[0].get();
+    request->controls() = controls;
     
     return 0;
 }
@@ -275,7 +304,9 @@ int rpi_camera_set_gain(rpi_camera_t *cam, float value) {
     
     ControlList controls;
     controls.set(controls::AnalogueGain, value);
-    cam->camera->controls.set(controls);
+    
+    Request *request = cam->requests[0].get();
+    request->controls() = controls;
     
     return 0;
 }

@@ -12,15 +12,35 @@ endif()
 
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
-# pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
-# pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
-# pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
+pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
+pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
+pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
+
+if(CMAKE_CROSSCOMPILING)
+  set(ENV{PKG_CONFIG_PATH} "")
+  set(ENV{PKG_CONFIG_LIBDIR} "${CMAKE_SYSROOT}/usr/lib/pkgconfig:${CMAKE_SYSROOT}/usr/share/pkgconfig")
+  set(ENV{PKG_CONFIG_SYSROOT_DIR} "${CMAKE_SYSROOT}")
+endif()
 
 # ============================================================================
 # Find libcamera (required for wrapper)
 # ============================================================================
-pkg_check_modules(LIBCAMERA REQUIRED libcamera)
-pkg_check_modules(LIBCAMERA_BASE REQUIRED libcamera-base)
+# pkg_check_modules(LIBCAMERA REQUIRED libcamera)
+# pkg_check_modules(LIBCAMERA_BASE REQUIRED libcamera-base)
+set(LIBCAMERA_INCLUDE_DIRS "${CMAKE_SYSROOT}/usr/include/libcamera")
+set(LIBCAMERA_LIBRARIES "camera;camera-base")
+set(LIBCAMERA_LIBRARY_DIRS "${CMAKE_SYSROOT}/usr/lib")
+
+# Also set for libcamera-base
+set(LIBCAMERA_BASE_INCLUDE_DIRS "${CMAKE_SYSROOT}/usr/include/libcamera")
+set(LIBCAMERA_BASE_LIBRARIES "camera-base")
+
+message(STATUS "libcamera found (manual): ${LIBCAMERA_LIBRARIES}")
+message(STATUS "libcamera include (manual): ${LIBCAMERA_INCLUDE_DIRS}")
+
+# Add library search path
+link_directories(${LIBCAMERA_LIBRARY_DIRS})
+include_directories(${LIBCAMERA_INCLUDE_DIRS})
 
 message(STATUS "libcamera found: ${LIBCAMERA_LIBRARIES}")
 message(STATUS "libcamera include: ${LIBCAMERA_INCLUDE_DIRS}")
@@ -181,7 +201,7 @@ target_link_libraries(test_wrapper_stress PRIVATE
 # Build Sample app
 # ============================================================================
 set(SAMPLE_APP_SOURCES
-  ${PROJECT_SOURCE_DIR}/examples/sample_camera_app.c
+  ${PROJECT_SOURCE_DIR}/test/test_wrapper/sample_app.c
 )
 
 add_executable(sample_camera_app
@@ -212,7 +232,13 @@ install(TARGETS
   test_wrapper_formats
   test_wrapper_controls
   test_wrapper_stress
+  sample_camera_app
   RUNTIME DESTINATION bin/tests
+)
+
+target_include_directories(rpi_camera_wrapper PUBLIC
+  ${LIBCAMERA_INCLUDE_DIRS}
+  ${LIBCAMERA_BASE_INCLUDE_DIRS}
 )
 
 # ============================================================================
@@ -283,3 +309,4 @@ message(STATUS "")
 #   ./test_wrapper_formats
 #   ./test_wrapper_controls
 #   ./test_wrapper_stress
+#   ./sample_camera_app

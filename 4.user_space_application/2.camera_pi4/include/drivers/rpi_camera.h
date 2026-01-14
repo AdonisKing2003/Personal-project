@@ -41,7 +41,7 @@ int rpi_camera_set_gain(rpi_camera_t *cam, float value);       // 1.0 to 16.0
 /* API for user */
 int rpi_camera_get_frame(rpi_camera_t *cam, rpi_frame_t *out);
 int rpi_camera_try_get_frame(rpi_camera_t *cam, rpi_frame_t *out);
-
+void rpi_camera_release_frame(rpi_frame_t *f);
 #ifdef __cplusplus
 }
 #endif

@@ -10,32 +10,12 @@
 #include <thread>
 #include <atomic>
 #include <map>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <cstring>
 
 using namespace libcamera;
-
-// Global map to store camera pointers by request cookie
-static std::map<uint64_t, rpi_camera_t*> g_camera_map;
-static uint64_t g_next_cookie = 1;
-
-struct rpi_camera_t {
-    std::unique_ptr<CameraManager> cm;
-    std::shared_ptr<Camera> camera;
-    std::unique_ptr<CameraConfiguration> config;
-    FrameBufferAllocator *allocator;
-    std::vector<std::unique_ptr<Request>> requests;
-    
-    int width;
-    int height;
-    rpi_format_t format;
-    
-    std::atomic<bool> running;
-    std::thread capture_thread;
-
-    uint64_t cookie; /* Add cookie to store our identifier*/
-    std::unique_ptr<FramePipeline> pipeline;
-    
-    ~rpi_camera_t() = default;
-};
 
 struct InternalFrame {
     std::vector<uint8_t> data;  // COPY
@@ -92,7 +72,7 @@ public:
         cv.notify_all();
     }
 
-    void FramePipeline::reset()
+    void reset()
     {
         std::lock_guard<std::mutex> lk(mtx);
         std::queue<InternalFrame> empty;
@@ -111,6 +91,33 @@ private:
     bool stopped = false;
 
     std::atomic<uint64_t> dropped{0};
+};
+
+// Global map to store camera pointers by request cookie
+static std::map<uint64_t, rpi_camera_t*> g_camera_map;
+static uint64_t g_next_cookie = 1;
+
+struct rpi_camera_t {
+    std::unique_ptr<CameraManager> cm;
+    std::shared_ptr<Camera> camera;
+    std::unique_ptr<CameraConfiguration> config;
+    std::unique_ptr<FrameBufferAllocator> allocator;
+    std::vector<std::unique_ptr<Request>> requests;
+    libcamera::Stream *stream;
+    std::vector<libcamera::FrameBuffer *> buffers;
+
+    int width;
+    int height;
+    rpi_format_t format;
+    
+    std::atomic<bool> running;
+    std::thread capture_thread;
+    bool signal_connected;
+
+    uint64_t cookie; /* Add cookie to store our identifier*/
+    std::unique_ptr<FramePipeline> pipeline;
+    
+    ~rpi_camera_t() = default;
 };
 
 /* API for user blocking */
@@ -207,8 +214,8 @@ static void request_complete(Request *request) {
                 
                 /* -------- COPY FRAME -------- */
                 InternalFrame copy;
-                copy.data.resize(plane.length);
-                memcpy(copy.data.data(), data, plane.length);
+                copy.data.resize(planes[0].length);
+                memcpy(copy.data.data(), data, planes[0].length);
 
                 copy.timestamp = metadata.timestamp;
                 copy.sequence  = metadata.sequence;
@@ -238,6 +245,7 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     cam->allocator = nullptr;
     cam->cookie = g_next_cookie++; // Assign unique cookie
     cam->pipeline = std::make_unique<FramePipeline>(4); // Example queue 4 frame
+    cam->signal_connected = false;
 
     // Register in global map
     g_camera_map[cam->cookie] = cam;
@@ -301,7 +309,7 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     }
     
     // Allocate buffers
-    cam->allocator = new FrameBufferAllocator(cam->camera);
+    cam->allocator = std::make_unique<FrameBufferAllocator>(cam->camera);
     Stream *stream = streamConfig.stream();
     ret = cam->allocator->allocate(stream);
     if (ret < 0) {
@@ -314,30 +322,62 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     }
     
     // Tạo requests
-    const std::vector<std::unique_ptr<FrameBuffer>> &buffers = 
-        cam->allocator->buffers(stream);
-    
-    for (unsigned int i = 0; i < buffers.size(); ++i) {
-        std::unique_ptr<Request> request = cam->camera->createRequest(cam->cookie);
-        if (!request) {
-            std::cerr << "Failed to create request" << std::endl;
-            delete cam;
-            return nullptr;
-        }
-        
-        const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
-        ret = request->addBuffer(stream, buffer.get());
-        if (ret < 0) {
-            std::cerr << "Failed to add buffer to request" << std::endl;
-            delete cam;
-            return nullptr;
-        }
-        
-        cam->requests.push_back(std::move(request));
+    cam->stream = stream;
+    const auto &bufs = cam->allocator->buffers(cam->stream);
+    for (const auto &b : bufs)
+    {
+        cam->buffers.push_back(b.get());
     }
+    // const std::vector<std::unique_ptr<FrameBuffer>> &buffers = 
+    //     cam->allocator->buffers(stream);
+    
+    // for (unsigned int i = 0; i < buffers.size(); ++i) {
+    //     std::unique_ptr<Request> request = cam->camera->createRequest(cam->cookie);
+    //     if (!request) {
+    //         std::cerr << "Failed to create request" << std::endl;
+    //         delete cam;
+    //         return nullptr;
+    //     }
+        
+    //     const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
+    //     ret = request->addBuffer(stream, buffer.get());
+    //     if (ret < 0) {
+    //         std::cerr << "Failed to add buffer to request" << std::endl;
+    //         delete cam;
+    //         return nullptr;
+    //     }
+        
+    //     cam->requests.push_back(std::move(request));
+    // }
     
     std::cout << "Camera created: " << width << "x" << height << std::endl;
     return cam;
+}
+
+int rpi_camera_create_requests(rpi_camera_t *cam)
+{
+    cam->requests.clear();
+
+    for (auto &buffer : cam->buffers) {
+        std::unique_ptr<Request> req =
+            cam->camera->createRequest(cam->cookie);
+
+        if (!req)
+        {
+            std::cerr << "Failed to create request" << std::endl;
+            return -1;
+        }
+
+        if (req->addBuffer(cam->stream, buffer) < 0)
+        {
+            std::cerr << "Failed to add buffer to request" << std::endl;
+            return -1;
+        }
+
+        cam->requests.push_back(std::move(req));
+    }
+
+    return 0;
 }
 
 int rpi_camera_start(rpi_camera_t *cam) {
@@ -351,11 +391,18 @@ int rpi_camera_start(rpi_camera_t *cam) {
         return 0;
     }
 
-    /* Reset pipeline state */
-    cam->pipeline->reset();
+    cam->requests.clear();
     
     // Connect request completion signal
-    cam->camera->requestCompleted.connect(request_complete);
+     if (rpi_camera_create_requests(cam) < 0) {
+        std::cerr << "Failed to create requests" << std::endl;
+        return -1;
+    }
+
+    if (!cam->signal_connected) {
+        cam->camera->requestCompleted.connect(request_complete);
+        cam->signal_connected = true;
+    }
     
     // Start camera
     int ret = cam->camera->start();
@@ -364,8 +411,10 @@ int rpi_camera_start(rpi_camera_t *cam) {
         return -1;
     }
     else {
-        std::cout<<"[INFO]: Camera Start...!"
+        std::cout<<"[INFO]: Camera Start...!"<<std::endl;
     }
+
+    cam->pipeline->reset();
 
     cam->running = true;
     
@@ -399,9 +448,14 @@ int rpi_camera_stop(rpi_camera_t *cam) {
     /* Stop pipeline to unblock get_frame() */
     if (cam->pipeline) {
         cam->pipeline->stop();
+        cam->pipeline->reset();
     }
-    
-    std::cout << "Camera stopped" << std::endl;
+
+    /* Destroy requests after stop */
+    cam->requests.clear();
+    cam->running = false;
+
+    std::cout << "[INFO]: Camera stopped" << std::endl;
     return 0;
 }
 
@@ -423,8 +477,7 @@ void rpi_camera_destroy(rpi_camera_t *cam) {
     /* 4. Clear requests (release FrameBuffer refs) */
     cam->requests.clear();
     /* 5. Delete allocator (owns buffers)*/
-    delete cam->allocator;
-    cam->allocator = nullptr;
+    cam->allocator.reset();
 
     /* 6. Remove from global map */
     g_camera_map.erase(cam->cookie);

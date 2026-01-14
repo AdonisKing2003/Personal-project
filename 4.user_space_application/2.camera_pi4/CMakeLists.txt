@@ -126,7 +126,7 @@ set(TEST_WRAPPER_STRESS_SOURCES
 
 # Utils source
 set(UTILS_SOURCES
-  # ${PROJECT_SOURCE_DIR}/src/utils/utils.c
+  ${PROJECT_SOURCE_DIR}/src/utils/utils.c
 )
 
 # Build executable from core and drivers
@@ -165,6 +165,9 @@ add_executable(test_wrapper_basic
 target_link_libraries(test_wrapper_basic PRIVATE
   rpi_camera_wrapper
   Threads::Threads
+)
+target_sources(test_wrapper_basic PRIVATE
+  ${UTILS_SOURCES}
 )
 
 # Test 2: Format tests
@@ -297,7 +300,10 @@ message(STATUS "")
 # Build:
 #   export OE_CMAKE_TOOLCHAIN_FILE=~/workspace/4.SDK/sysroots/x86_64-pokysdk-linux/usr/share/cmake/OEToolchainConfig.cmake
 #   mkdir build && cd build
-#   cmake -DCMAKE_TOOLCHAIN_FILE=$OE_CMAKE_TOOLCHAIN_FILE ..
+#   cmake -DCMAKE_TOOLCHAIN_FILE=$OE_CMAKE_TOOLCHAIN_FILE \
+#   -DCMAKE_CXX_FLAGS="--sysroot=$SDKTARGETSYSROOT -I$SDKTARGETSYSROOT/usr/include/c++/13 -I$SDKTARGETSYSROOT/usr/include/c++/13/aarch64-poky-linux" \
+#   -DCMAKE_C_FLAGS="--sysroot=$SDKTARGETSYSROOT" \
+#   ..
 #   make -j$(nproc)
 #
 # Run tests on target (Pi4):

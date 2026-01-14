@@ -53,9 +53,10 @@ void test_brightness() {
         ret = rpi_camera_start(cam);
         assert(ret == 0);
         
+        uint64_t start_ts = get_time_ns();
         while (get_time_ns() - start_ts < 1e9) {
             rpi_frame_t frame;
-            if (rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+            if (rpi_camera_get_frame(cam, &frame) == 0) {
                 stats.frame_count++;
                 stats.last_sequence = frame.sequence;
                 stats.last_timestamp = frame.timestamp;

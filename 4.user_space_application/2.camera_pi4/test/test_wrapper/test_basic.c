@@ -238,6 +238,7 @@ void test_frame_validation() {
     assert(ret == 0);
     
     printf("5.1. Validating frames for 2 seconds...\n");
+    uint64_t start_ts = get_time_ns();
     while (get_time_ns() - start_ts < 1e9) {
         rpi_frame_t frame;
         if (rpi_camera_get_frame(cam, &frame, 1000) == 0) {

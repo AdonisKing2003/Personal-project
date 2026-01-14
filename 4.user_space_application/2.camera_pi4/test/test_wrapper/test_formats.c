@@ -24,26 +24,6 @@ typedef struct {
 } format_stats_t;
 
 // ============================================================================
-// Callback để thu thập statistics
-// ============================================================================
-void format_callback(rpi_frame_t *frame, void *userdata) {
-    format_stats_t *stats = (format_stats_t *)userdata;
-    
-    if (stats->frame_count == 0) {
-        stats->start_time = frame->timestamp;
-        stats->min_size = frame->size;
-        stats->max_size = frame->size;
-    }
-    
-    stats->frame_count++;
-    stats->total_bytes += frame->size;
-    stats->end_time = frame->timestamp;
-    
-    if (frame->size < stats->min_size) stats->min_size = frame->size;
-    if (frame->size > stats->max_size) stats->max_size = frame->size;
-}
-
-// ============================================================================
 // TEST 1: YUV420 Format
 // ============================================================================
 void test_yuv420() {
@@ -63,10 +43,19 @@ void test_yuv420() {
         assert(cam != NULL);
         
         format_stats_t stats = {0};
-        int ret = rpi_camera_start(cam, format_callback, &stats);
+        int ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        sleep(2);
+        /* Get frame during 2 seconds */
+        while(get_time_ns() - stat_ts < 2e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -114,10 +103,19 @@ void test_rgb888() {
         assert(cam != NULL);
         
         format_stats_t stats = {0};
-        int ret = rpi_camera_start(cam, format_callback, &stats);
+        int ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        sleep(2);
+        /* Get frame during 2 seconds */
+        while(get_time_ns() - stat_ts < 2e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -162,10 +160,19 @@ void test_mjpeg() {
         assert(cam != NULL);
         
         format_stats_t stats = {0};
-        int ret = rpi_camera_start(cam, format_callback, &stats);
+        int ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        sleep(2);
+        /* Get frame during 2 seconds */
+        while(get_time_ns() - stat_ts < 2e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -207,9 +214,18 @@ void test_resolution_limits() {
     assert(cam != NULL);
     
     format_stats_t stats = {0};
-    int ret = rpi_camera_start(cam, format_callback, &stats);
+    int ret = rpi_camera_start(cam);
     assert(ret == 0);
-    sleep(1);
+    /* Get frame during 1 seconds */
+    while(get_time_ns() - stat_ts < 1e9) {
+        rpi_frame_t frame;
+        if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+            stats.frame_count++;
+            stats.last_sequence = frame.sequence;
+            stats.last_timestamp = frame.last_timestamp;
+            rpi_camera_release_frame(&frame);
+        }
+    }
     rpi_camera_stop(cam);
     
     printf("    ✓ Min resolution works: %d frames\n", stats.frame_count);
@@ -221,9 +237,18 @@ void test_resolution_limits() {
     cam = rpi_camera_create(2592, 1944, RPI_FMT_YUV420);
     if (cam != NULL) {
         stats = (format_stats_t){0};
-        ret = rpi_camera_start(cam, format_callback, &stats);
+        ret = rpi_camera_start(cam);
         if (ret == 0) {
-            sleep(1);
+            /* Get frame during 1 seconds */
+            while(get_time_ns() - stat_ts < 1e9) {
+                rpi_frame_t frame;
+                if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                    stats.frame_count++;
+                    stats.last_sequence = frame.sequence;
+                    stats.last_timestamp = frame.last_timestamp;
+                    rpi_camera_release_frame(&frame);
+                }
+            }
             rpi_camera_stop(cam);
             printf("    ✓ High resolution works: %d frames\n", stats.frame_count);
         } else {
@@ -251,10 +276,19 @@ void test_format_switching() {
         assert(cam != NULL);
         
         format_stats_t stats = {0};
-        int ret = rpi_camera_start(cam, format_callback, &stats);
+        int ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        sleep(1);
+        /* Get frame during 1 seconds */
+        while(get_time_ns() - stat_ts < 1e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);

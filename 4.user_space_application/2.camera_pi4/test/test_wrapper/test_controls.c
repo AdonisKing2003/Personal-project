@@ -29,17 +29,6 @@ unsigned char calculate_brightness(void *data, size_t size) {
     return (unsigned char)(sum / (y_size / 100));
 }
 
-void control_callback(rpi_frame_t *frame, void *userdata) {
-    control_stats_t *stats = (control_stats_t *)userdata;
-    stats->frame_count++;
-    
-    // Sample brightness every 5 frames
-    if (stats->frame_count % 5 == 0 && stats->sample_count < 10) {
-        unsigned char brightness = calculate_brightness(frame->data, frame->size);
-        stats->brightness_samples[stats->sample_count++] = brightness;
-    }
-}
-
 // ============================================================================
 // TEST 1: Brightness Control
 // ============================================================================
@@ -61,10 +50,18 @@ void test_brightness() {
         
         // Start capturing
         control_stats_t stats = {0};
-        ret = rpi_camera_start(cam, control_callback, &stats);
+        ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        sleep(2);
+        while (get_time_ns() - start_ts < 1e9) {
+            rpi_frame_t frame;
+            if (rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -114,10 +111,19 @@ void test_contrast() {
         
         // Start capturing
         control_stats_t stats = {0};
-        ret = rpi_camera_start(cam, control_callback, &stats);
+        ret = rpi_camera_start(cam);
         assert(ret == 0);
-        
-        sleep(2);
+
+        uint64_t start_ts = get_time_ns();
+        while(get_time_ns() - stat_ts < 1e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -153,10 +159,20 @@ void test_exposure() {
         
         // Start capturing
         control_stats_t stats = {0};
-        ret = rpi_camera_start(cam, control_callback, &stats);
+        ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        sleep(2);
+        uint64_t start_ts = get_time_ns();
+        /* Get frame during 2 seconds */
+        while(get_time_ns() - stat_ts < 2e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -200,10 +216,19 @@ void test_gain() {
         
         // Start capturing
         control_stats_t stats = {0};
-        ret = rpi_camera_start(cam, control_callback, &stats);
+        ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        sleep(2);
+        /* Get frame during 2 seconds */
+        while(get_time_ns() - stat_ts < 2e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -246,11 +271,20 @@ void test_combined_controls() {
     
     // Start capturing
     control_stats_t stats = {0};
-    ret = rpi_camera_start(cam, control_callback, &stats);
+    ret = rpi_camera_start(cam);
     assert(ret == 0);
     
     printf("5.2. Capturing with combined controls...\n");
-    sleep(2);
+    /* Get frame during 2 seconds */
+    while(get_time_ns() - stat_ts < 2e9) {
+        rpi_frame_t frame;
+        if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+            stats.frame_count++;
+            stats.last_sequence = frame.sequence;
+            stats.last_timestamp = frame.last_timestamp;
+            rpi_camera_release_frame(&frame);
+        }
+    }
     
     ret = rpi_camera_stop(cam);
     assert(ret == 0);
@@ -274,7 +308,7 @@ void test_dynamic_controls() {
     assert(cam != NULL);
     
     control_stats_t stats = {0};
-    int ret = rpi_camera_start(cam, control_callback, &stats);
+    int ret = rpi_camera_start(cam);
     assert(ret == 0);
     
     printf("6.1. Changing brightness while capturing...\n");
@@ -285,7 +319,16 @@ void test_dynamic_controls() {
         ret = rpi_camera_set_brightness(cam, brightness);
         assert(ret == 0);
         printf("    Set brightness to %.1f\n", brightness);
-        sleep(1);
+        /* Get frame during 1 seconds */
+        while(get_time_ns() - stat_ts < 1e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
     }
     
     printf("    ✓ Dynamic changes work\n");
@@ -326,10 +369,19 @@ void test_invalid_controls() {
     
     // Camera should still work after invalid values
     control_stats_t stats = {0};
-    int ret = rpi_camera_start(cam, control_callback, &stats);
+    int ret = rpi_camera_start(cam);
     assert(ret == 0);
     
-    sleep(1);
+    /* Get frame during 1 seconds */
+    while(get_time_ns() - stat_ts < 1e9) {
+        rpi_frame_t frame;
+        if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+            stats.frame_count++;
+            stats.last_sequence = frame.sequence;
+            stats.last_timestamp = frame.last_timestamp;
+            rpi_camera_release_frame(&frame);
+        }
+    }
     
     ret = rpi_camera_stop(cam);
     assert(ret == 0);

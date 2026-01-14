@@ -24,12 +24,6 @@ typedef struct {
     long end_memory;
 } stress_stats_t;
 
-void stress_callback(rpi_frame_t *frame, void *userdata) {
-    stress_stats_t *stats = (stress_stats_t *)userdata;
-    stats->frame_count++;
-    stats->total_bytes += frame->size;
-}
-
 // ============================================================================
 // TEST 1: Long Running Test
 // ============================================================================
@@ -42,7 +36,7 @@ void test_long_running() {
     stress_stats_t stats = {0};
     stats.start_memory = get_memory_usage_kb();
     
-    int ret = rpi_camera_start(cam, stress_callback, &stats);
+    int ret = rpi_camera_start(cam);
     assert(ret == 0);
     
     printf("Starting capture for 30 seconds...\n");
@@ -50,7 +44,16 @@ void test_long_running() {
     printf("-----|--------|------|------------\n");
     
     for (int i = 1; i <= 6; i++) {
-        sleep(5);
+        /* Get frame during 5 seconds */
+        while(get_time_ns() - stat_ts < 5e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         long current_mem = get_memory_usage_kb();
         double fps = stats.frame_count / (i * 5.0);
         printf("%4ds | %6d | %4.1f | %ld\n", 
@@ -93,10 +96,20 @@ void test_repeated_start_stop() {
     for (int i = 0; i < 100; i++) {
         stress_stats_t stats = {0};
         
-        int ret = rpi_camera_start(cam, stress_callback, &stats);
+        int ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        usleep(100000);  // 100ms
+        // usleep(100000);  // 100ms
+        /* Get frame during 100 milliseconds */
+        while(get_time_ns() - stat_ts < 100000000) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -136,10 +149,20 @@ void test_multiple_create_destroy() {
         assert(cam != NULL);
         
         stress_stats_t stats = {0};
-        int ret = rpi_camera_start(cam, stress_callback, &stats);
+        int ret = rpi_camera_start(cam);
         assert(ret == 0);
         
-        usleep(100000);  // 100ms
+        // usleep(100000);  // 100ms
+        /* Get frame during 100 milliseconds */
+        while(get_time_ns() - stat_ts < 100000000) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
@@ -173,13 +196,22 @@ void test_high_fps() {
     assert(cam != NULL);
     
     stress_stats_t stats = {0};
-    int ret = rpi_camera_start(cam, stress_callback, &stats);
+    int ret = rpi_camera_start(cam);
     assert(ret == 0);
     
     printf("Capturing at small resolution for 5 seconds...\n");
     
     for (int i = 1; i <= 5; i++) {
-        sleep(1);
+        /* Get frame during 1 second */
+        while(get_time_ns() - stat_ts < 1e9) {
+            rpi_frame_t frame;
+            if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                stats.frame_count++;
+                stats.last_sequence = frame.sequence;
+                stats.last_timestamp = frame.last_timestamp;
+                rpi_camera_release_frame(&frame);
+            }
+        }
         double fps = stats.frame_count / (double)i;
         printf("  %ds: %d frames (%.1f FPS)\n", i, stats.frame_count, fps);
     }
@@ -236,11 +268,20 @@ void test_frame_drops() {
     assert(cam != NULL);
     
     drop_stats_t stats = {0};
-    int ret = rpi_camera_start(cam, drop_callback, &stats);
+    int ret = rpi_camera_start(cam);
     assert(ret == 0);
     
     printf("Capturing with slow callback (5ms delay)...\n");
-    sleep(5);
+    /* Get frame during 5 seconds */
+    while(get_time_ns() - stat_ts < 5e9) {
+        rpi_frame_t frame;
+        if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+            stats.frame_count++;
+            stats.last_sequence = frame.sequence;
+            stats.last_timestamp = frame.last_timestamp;
+            rpi_camera_release_frame(&frame);
+        }
+    }
     
     ret = rpi_camera_stop(cam);
     assert(ret == 0);
@@ -265,36 +306,56 @@ void test_frame_drops() {
 // ============================================================================
 void test_concurrent_cameras() {
     printf("\n=== TEST 6: Concurrent Cameras ===\n");
-    
-    printf("Attempting to open two cameras simultaneously...\n");
-    
+
     rpi_camera_t *cam1 = rpi_camera_create(640, 480, RPI_FMT_YUV420);
     assert(cam1 != NULL);
     printf("  ✓ Camera 1 created\n");
-    
+
     rpi_camera_t *cam2 = rpi_camera_create(320, 240, RPI_FMT_YUV420);
-    
-    if (cam2 != NULL) {
-        printf("  ✓ Camera 2 created (multiple cameras supported)\n");
-        
-        stress_stats_t stats1 = {0}, stats2 = {0};
-        
-        rpi_camera_start(cam1, stress_callback, &stats1);
-        rpi_camera_start(cam2, stress_callback, &stats2);
-        
-        sleep(2);
-        
-        rpi_camera_stop(cam1);
-        rpi_camera_stop(cam2);
-        
-        printf("  Camera 1: %d frames\n", stats1.frame_count);
-        printf("  Camera 2: %d frames\n", stats2.frame_count);
-        
-        rpi_camera_destroy(cam2);
-    } else {
+    if (!cam2) {
         printf("  ⚠ Only one camera supported (this is normal)\n");
+        rpi_camera_destroy(cam1);
+        return;
     }
-    
+
+    printf("  ✓ Camera 2 created\n");
+
+    rpi_camera_start(cam1);
+    rpi_camera_start(cam2);
+
+    uint64_t start_ts = get_time_ns();
+    stress_stats_t stats1 = {0}, stats2 = {0};
+
+    while (get_time_ns() - start_ts < 100000000) { // 100ms
+        rpi_frame_t f1, f2;
+
+        if (rpi_camera_try_get_frame(cam1, &f1) == 0) {
+            stats1.frame_count++;
+            stats1.last_sequence = f1.sequence;
+            stats1.last_timestamp = f1.timestamp;
+            rpi_camera_release_frame(&f1);
+        }
+
+        if (rpi_camera_try_get_frame(cam2, &f2) == 0) {
+            stats2.frame_count++;
+            stats2.last_sequence = f2.sequence;
+            stats2.last_timestamp = f2.timestamp;
+            rpi_camera_release_frame(&f2);
+        }
+
+        usleep(1000); // avoid busy loop
+    }
+
+    rpi_camera_stop(cam1);
+    rpi_camera_stop(cam2);
+
+    printf("  Camera 1: %d frames\n", stats1.frame_count);
+    printf("  Camera 2: %d frames\n", stats2.frame_count);
+
+    assert(stats1.frame_count > 0);
+    assert(stats2.frame_count > 0);
+
+    rpi_camera_destroy(cam2);
     rpi_camera_destroy(cam1);
 }
 
@@ -315,8 +376,18 @@ void test_rapid_format_changes() {
             assert(cam != NULL);
             
             stress_stats_t stats = {0};
-            rpi_camera_start(cam, stress_callback, &stats);
-            usleep(200000);  // 200ms
+            rpi_camera_start(cam);
+            // usleep(200000);  // 200ms
+            while(get_time_ns() - stat_ts < 200000000) {
+                rpi_frame_t frame;
+                if(rpi_camera_get_frame(cam, &frame, 1000) == 0) {
+                    stats.frame_count++;
+                    stats.last_sequence = frame.sequence;
+                    stats.last_timestamp = frame.last_timestamp;
+                    rpi_camera_release_frame(&frame);
+                }
+            }
+
             rpi_camera_stop(cam);
             rpi_camera_destroy(cam);
         }

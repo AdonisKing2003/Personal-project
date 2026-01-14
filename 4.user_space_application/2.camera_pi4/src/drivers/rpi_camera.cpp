@@ -145,9 +145,12 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
         delete cam;
         return nullptr;
     }
+    else {
+        std::cout << "Find camera: " << cam->camera->id() << std::endl;
+    }
     
     // Cấu hình camera
-    cam->config = cam->camera->generateConfiguration({StreamRole::VideoRecording});
+    cam->config = cam->camera->generateConfiguration({StreamRole::VideoRecording}); /* StillCapture | Raw | Viewfinder | VideoRecording */
     StreamConfiguration &streamConfig = cam->config->at(0);
     
     streamConfig.size.width = width;
@@ -156,16 +159,25 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     
     CameraConfiguration::Status validation = cam->config->validate();
     if (validation == CameraConfiguration::Invalid) {
-        std::cerr << "Camera configuration invalid" << std::endl;
+        std::cerr << "[ERROR]: Camera configuration invalid" << std::endl;
         delete cam;
         return nullptr;
+    }
+    else if (validation == CameraConfiguration::Adjusted) {
+        std::cout << "[INFO]: Camera configuration adjusted by libcamera!" << std::endl;
+    }
+    else {
+        std::cout<< "[INFO]: Camera config validate!" << std::endl;
     }
     
     ret = cam->camera->configure(cam->config.get());
     if (ret) {
-        std::cerr << "Failed to configure camera" << std::endl;
+        std::cerr << "[ERROR]: Failed to configure camera" << std::endl;
         delete cam;
         return nullptr;
+    }
+    else {
+        std::cout<< "[INFO]: Camera configuration!" << std::endl;
     }
     
     // Allocate buffers
@@ -176,6 +188,9 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
         std::cerr << "Failed to allocate buffers" << std::endl;
         delete cam;
         return nullptr;
+    }
+    else {
+        std::cout<<"[INFO]: Allocate buffers...!\n" << std::endl;
     }
     
     // Tạo requests
@@ -221,17 +236,20 @@ int rpi_camera_start(rpi_camera_t *cam, rpi_frame_callback_t callback, void *use
         std::cerr << "Failed to start camera" << std::endl;
         return -1;
     }
+    else {
+        std::cout<<"[INFO]: Camera Start...!"
+    }
     
     // Queue all requests
     for (std::unique_ptr<Request> &request : cam->requests) {
         ret = cam->camera->queueRequest(request.get());
         if (ret < 0) {
-            std::cerr << "Failed to queue request" << std::endl;
+            std::cerr << "[ERROR]: Failed to queue request" << std::endl;
             return -1;
         }
     }
     
-    std::cout << "Camera started" << std::endl;
+    std::cout << "[INFO]: Camera started...!" << std::endl;
     return 0;
 }
 
@@ -265,12 +283,15 @@ void rpi_camera_destroy(rpi_camera_t *cam) {
 int rpi_camera_set_brightness(rpi_camera_t *cam, float value) {
     if (!cam) return -1;
     
-    ControlList controls;
-    controls.set(controls::Brightness, value);
+    // ControlList controls;
+    // controls.set(controls::Brightness, value);
     
     // Create a request and add controls
-    Request *request = cam->requests[0].get();
-    request->controls() = controls;
+    for (auto &req : cam->requests) {
+        req->controls().set(controls::Brightness, value);
+    }
+    // Request *request = cam->requests[0].get();
+    // request->controls() = controls;
     
     return 0;
 }
@@ -278,11 +299,15 @@ int rpi_camera_set_brightness(rpi_camera_t *cam, float value) {
 int rpi_camera_set_contrast(rpi_camera_t *cam, float value) {
     if (!cam) return -1;
     
-    ControlList controls;
-    controls.set(controls::Contrast, value);
+    // ControlList controls;
+    // controls.set(controls::Contrast, value);
     
-    Request *request = cam->requests[0].get();
-    request->controls() = controls;
+    // Request *request = cam->requests[0].get();
+    // request->controls() = controls;
+
+    for (auto &req : cam->requests) {
+        req->controls().set(controls::Contrast, value);
+    }
     
     return 0;
 }
@@ -290,11 +315,14 @@ int rpi_camera_set_contrast(rpi_camera_t *cam, float value) {
 int rpi_camera_set_exposure(rpi_camera_t *cam, int microseconds) {
     if (!cam) return -1;
     
-    ControlList controls;
-    controls.set(controls::ExposureTime, microseconds);
+    // ControlList controls;
+    // controls.set(controls::ExposureTime, microseconds);
     
-    Request *request = cam->requests[0].get();
-    request->controls() = controls;
+    // Request *request = cam->requests[0].get();
+    // request->controls() = controls;
+    for (auto &req : cam->requests) {
+        req->controls().set(controls::ExposureTime, microseconds);
+    }
     
     return 0;
 }
@@ -302,11 +330,14 @@ int rpi_camera_set_exposure(rpi_camera_t *cam, int microseconds) {
 int rpi_camera_set_gain(rpi_camera_t *cam, float value) {
     if (!cam) return -1;
     
-    ControlList controls;
-    controls.set(controls::AnalogueGain, value);
+    // ControlList controls;
+    // controls.set(controls::AnalogueGain, value);
     
-    Request *request = cam->requests[0].get();
-    request->controls() = controls;
+    // Request *request = cam->requests[0].get();
+    // request->controls() = controls;
+    for (auto &req : cam->requests) {
+        req->controls().set(controls::AnalogueGain, value);
+    }
     
     return 0;
 }

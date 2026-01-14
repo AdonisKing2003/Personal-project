@@ -24,9 +24,6 @@ struct rpi_camera_t {
     FrameBufferAllocator *allocator;
     std::vector<std::unique_ptr<Request>> requests;
     
-    rpi_frame_callback_t callback;
-    void *userdata;
-    
     int width;
     int height;
     rpi_format_t format;
@@ -34,12 +31,130 @@ struct rpi_camera_t {
     std::atomic<bool> running;
     std::thread capture_thread;
 
-    uint64_t cookie; // Add cookie to store our identifier
+    uint64_t cookie; /* Add cookie to store our identifier*/
+    std::unique_ptr<FramePipeline> pipeline;
     
-    ~rpi_camera_t() {
-        if (allocator) delete allocator;
-    }
+    ~rpi_camera_t() = default;
 };
+
+struct InternalFrame {
+    std::vector<uint8_t> data;  // COPY
+    uint64_t timestamp;
+    uint32_t sequence;
+};
+
+class FramePipeline {
+public:
+    explicit FramePipeline(size_t max)
+        : max_size(max) {}
+
+    bool push(InternalFrame &&f) {
+        std::lock_guard<std::mutex> lk(mtx);
+
+        if (queue.size() >= max_size) {
+            dropped++;
+            return false; // DROP
+        }
+
+        queue.push(std::move(f));
+        cv.notify_one();
+        return true;
+    }
+
+    bool pop(InternalFrame &out) {
+        std::unique_lock<std::mutex> lk(mtx);
+
+        cv.wait(lk, [&] {
+            return !queue.empty() || stopped;
+        });
+
+        if (queue.empty())
+            return false;
+
+        out = std::move(queue.front());
+        queue.pop();
+        return true;
+    }
+
+    bool try_pop(InternalFrame &out) {
+        std::lock_guard<std::mutex> lk(mtx);
+        if (queue.empty())
+            return false;
+
+        out = std::move(queue.front());
+        queue.pop();
+        return true;
+    }
+
+    void stop() {
+        std::lock_guard<std::mutex> lk(mtx);
+        stopped = true;
+        cv.notify_all();
+    }
+
+    void FramePipeline::reset()
+    {
+        std::lock_guard<std::mutex> lk(mtx);
+        std::queue<InternalFrame> empty;
+        std::swap(queue, empty);
+        stopped = false;
+    }
+
+    uint64_t dropped_count() const { return dropped; }
+
+private:
+    std::queue<InternalFrame> queue;
+    size_t max_size;
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool stopped = false;
+
+    std::atomic<uint64_t> dropped{0};
+};
+
+/* API for user blocking */
+int rpi_camera_get_frame(rpi_camera_t *cam, rpi_frame_t *out) {
+    if (!cam || !out) return -1;
+
+    InternalFrame f;
+    if (!cam->pipeline->pop(f))
+        return -1;
+
+    out->size = f.data.size();
+    out->data = (uint8_t *)malloc(out->size);
+    memcpy(out->data, f.data.data(), out->size);
+
+    out->timestamp = f.timestamp;
+    out->sequence  = f.sequence;
+
+    return 0;
+}
+
+/* API for user non-blocking */
+int rpi_camera_try_get_frame(rpi_camera_t *cam, rpi_frame_t *out) {
+    if (!cam || !out) return -1;
+
+    InternalFrame f;
+    if (!cam->pipeline->try_pop(f))
+        return -EAGAIN;
+
+    out->size = f.data.size();
+    out->data = (uint8_t *)malloc(out->size);
+    memcpy(out->data, f.data.data(), out->size);
+
+    out->timestamp = f.timestamp;
+    out->sequence  = f.sequence;
+
+    return 0;
+}
+
+/* API for user free frame */
+void rpi_camera_release_frame(rpi_frame_t *f) {
+    if (!f) return;
+    free(f->data);
+    f->data = NULL;
+}
 
 // Chuyển đổi format
 static PixelFormat to_libcamera_format(rpi_format_t fmt) {
@@ -68,6 +183,7 @@ static void request_complete(Request *request) {
          return;
      }
      rpi_camera_t *cam = it->second;
+     FramePipeline *pipeline = cam->pipeline.get();
 
     const Request::BufferMap &buffers = request->buffers();
     
@@ -89,10 +205,15 @@ static void request_complete(Request *request) {
                 frame.timestamp = metadata.timestamp;
                 frame.sequence = metadata.sequence;
                 
-                // Gọi callback
-                if (cam->callback) {
-                    cam->callback(&frame, cam->userdata);
-                }
+                /* -------- COPY FRAME -------- */
+                InternalFrame copy;
+                copy.data.resize(plane.length);
+                memcpy(copy.data.data(), data, plane.length);
+
+                copy.timestamp = metadata.timestamp;
+                copy.sequence  = metadata.sequence;
+
+                pipeline->push(std::move(copy));
                 
                 munmap(data, planes[0].length);
             }
@@ -114,10 +235,9 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     cam->height = height;
     cam->format = format;
     cam->running = false;
-    cam->callback = nullptr;
-    cam->userdata = nullptr;
     cam->allocator = nullptr;
     cam->cookie = g_next_cookie++; // Assign unique cookie
+    cam->pipeline = std::make_unique<FramePipeline>(4); // Example queue 4 frame
 
     // Register in global map
     g_camera_map[cam->cookie] = cam;
@@ -220,12 +340,19 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     return cam;
 }
 
-int rpi_camera_start(rpi_camera_t *cam, rpi_frame_callback_t callback, void *userdata) {
-    if (!cam || !callback) return -1;
+int rpi_camera_start(rpi_camera_t *cam) {
+    if (!cam || !cam->camera || !cam->pipeline) {
+        std::cout<<"[ERROR]: NULL ptr...!"<<std::endl;
+        return -1;
+    }
     
-    cam->callback = callback;
-    cam->userdata = userdata;
-    cam->running = true;
+    if (cam->running) {
+        std::cout<<"[INFO]: Camera still running...!"<<std::endl;
+        return 0;
+    }
+
+    /* Reset pipeline state */
+    cam->pipeline->reset();
     
     // Connect request completion signal
     cam->camera->requestCompleted.connect(request_complete);
@@ -239,6 +366,8 @@ int rpi_camera_start(rpi_camera_t *cam, rpi_frame_callback_t callback, void *use
     else {
         std::cout<<"[INFO]: Camera Start...!"
     }
+
+    cam->running = true;
     
     // Queue all requests
     for (std::unique_ptr<Request> &request : cam->requests) {
@@ -248,16 +377,29 @@ int rpi_camera_start(rpi_camera_t *cam, rpi_frame_callback_t callback, void *use
             return -1;
         }
     }
-    
+
     std::cout << "[INFO]: Camera started...!" << std::endl;
     return 0;
 }
 
 int rpi_camera_stop(rpi_camera_t *cam) {
-    if (!cam) return -1;
+    if (!cam || !cam->camera) {
+        std::cout<<"[ERROR]: NULL ptr...!"<<std::endl;
+        return -1;
+    }
+
+    if (!cam->running) {
+        std::cout<<"[INFO]: Camera has not been running...!"<<std::endl;
+        return 0;
+    }
     
     cam->running = false;
+    /* Stop camera first (stop producing frames) */
     cam->camera->stop();
+    /* Stop pipeline to unblock get_frame() */
+    if (cam->pipeline) {
+        cam->pipeline->stop();
+    }
     
     std::cout << "Camera stopped" << std::endl;
     return 0;
@@ -265,17 +407,38 @@ int rpi_camera_stop(rpi_camera_t *cam) {
 
 void rpi_camera_destroy(rpi_camera_t *cam) {
     if (!cam) return;
-    
+    /* 1. Stop camera */
     if (cam->running) {
         rpi_camera_stop(cam);
     }
-    
-    /* Remove from global map */
-    g_camera_map.erase(cam->cookie);
+    /* 2. Ensure pipeline stopped */
+    if (cam->pipeline) {
+        cam->pipeline->stop();
+        cam->pipeline.reset();
+    }
+    /* 3. Join capture thread (if you really use it) */
+    if(cam->capture_thread.joinable()) {
+        cam->capture_thread.join();
+    }
+    /* 4. Clear requests (release FrameBuffer refs) */
+    cam->requests.clear();
+    /* 5. Delete allocator (owns buffers)*/
+    delete cam->allocator;
+    cam->allocator = nullptr;
 
-    cam->camera->release();
-    cam->cm->stop();
-    
+    /* 6. Remove from global map */
+    g_camera_map.erase(cam->cookie);
+    /* 7. Release camera */
+    if(cam->camera) {
+        cam->camera->release();
+        cam->camera.reset();
+    }
+    /* 8. Stop manager*/
+    if(cam->cm) {
+        cam->cm->stop();
+        cam->cm.reset();
+    }
+    /* 9. Delete cam */
     delete cam;
 }
 

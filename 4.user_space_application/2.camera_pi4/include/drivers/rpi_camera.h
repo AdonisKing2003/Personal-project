@@ -24,12 +24,12 @@ typedef struct {
     uint32_t sequence;
 } rpi_frame_t;
 
-// Callback khi có frame mới
-typedef void (*rpi_frame_callback_t)(rpi_frame_t *frame, void *userdata);
+// // Callback khi có frame mới
+// typedef void (*rpi_frame_callback_t)(rpi_frame_t *frame, void *userdata);
 
 // API functions
 rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format);
-int rpi_camera_start(rpi_camera_t *cam, rpi_frame_callback_t callback, void *userdata);
+int rpi_camera_start(rpi_camera_t *cam);
 int rpi_camera_stop(rpi_camera_t *cam);
 void rpi_camera_destroy(rpi_camera_t *cam);
 
@@ -38,6 +38,9 @@ int rpi_camera_set_brightness(rpi_camera_t *cam, float value); // -1.0 to 1.0
 int rpi_camera_set_contrast(rpi_camera_t *cam, float value);   // 0.0 to 2.0
 int rpi_camera_set_exposure(rpi_camera_t *cam, int microseconds);
 int rpi_camera_set_gain(rpi_camera_t *cam, float value);       // 1.0 to 16.0
+/* API for user */
+int rpi_camera_get_frame(rpi_camera_t *cam, rpi_frame_t *out);
+int rpi_camera_try_get_frame(rpi_camera_t *cam, rpi_frame_t *out);
 
 #ifdef __cplusplus
 }

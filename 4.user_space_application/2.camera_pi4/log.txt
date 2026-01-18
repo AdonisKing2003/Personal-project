@@ -630,3 +630,332 @@ Nếu bạn muốn, mình có thể:
 📦 Chuẩn hóa API frame (zero-copy vs copy)
 
 Chỉ cần nói 👍
+
+
+
+=======
+DAY 3
+
+
+root@raspberrypi4-64:~/workspace# ./test_wrapper_formats 
+╔════════════════════════════════════════╗
+║  RPI Camera - Format Tests             ║
+╚════════════════════════════════════════╝
+
+=== TEST 1: YUV420 Format ===
+1.1. Testing YUV420 640x480...
+[1:34:42.585617501] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:42.625506264] [787]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:42.627738300] [787]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:42.628276606] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[1:34:42.628644914] [787]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 21
+      - FPS: 0.00
+      - Avg size: 460800 bytes
+      - Min size: 460800 bytes
+      - Max size: 460800 bytes
+      - Expected: 460800 bytes
+ ✓ PASSED
+1.2. Testing YUV420 1280x720...
+[1:34:44.449784685] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:44.491903447] [791]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:44.494094854] [791]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:44.494660270] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 1280x720-YUV420
+[1:34:44.495033671] [791]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 1920x1080-SGBRG10_1X10 - Selected unicam format: 1920x1080-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 1280x720
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 1382400 bytes
+ ✓ PASSED
+1.3. Testing YUV420 1920x1080...
+[1:34:44.620649008] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:44.663047413] [795]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:44.665611777] [795]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:44.666131527] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 1920x1080-YUV420
+[1:34:44.666498632] [795]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 1920x1080-SGBRG10_1X10 - Selected unicam format: 1920x1080-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 1920x1080
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 3110400 bytes
+ ✓ PASSED
+
+=== TEST 2: RGB888 Format ===
+2.1. Testing RGB888 640x480...
+[1:34:44.798031108] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:44.839485604] [799]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:44.841962358] [799]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:44.842559978] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-RGB888
+[1:34:44.842912398] [799]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 921600 bytes
+ ✓ PASSED
+2.2. Testing RGB888 1280x720...
+[1:34:44.958535534] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:44.999984882] [803]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:45.002540690] [803]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:45.003169569] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 1280x720-RGB888
+[1:34:45.003550858] [803]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 1920x1080-SGBRG10_1X10 - Selected unicam format: 1920x1080-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 1280x720
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 2764800 bytes
+ ✓ PASSED
+2.3. Testing RGB888 1920x1080...
+[1:34:45.135011762] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:45.174340387] [807]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:45.176491850] [807]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:45.177109469] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 1920x1080-RGB888
+[1:34:45.177479574] [807]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 1920x1080-SGBRG10_1X10 - Selected unicam format: 1920x1080-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 1920x1080
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 6220800 bytes
+ ✓ PASSED
+
+=== TEST 3: MJPEG Format ===
+3.1. Testing MJPEG 640x480...
+[1:34:45.320207785] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:45.359333524] [811]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:45.361677299] [811]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera configuration adjusted by libcamera!
+[1:34:45.362273900] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUYV
+[1:34:45.362647653] [811]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 10000 bytes
+ ✓ PASSED
+3.2. Testing MJPEG 1280x720...
+[1:34:45.478042553] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:45.521495626] [815]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:45.523587294] [815]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera configuration adjusted by libcamera!
+[1:34:45.524248394] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 1280x720-YUYV
+[1:34:45.524633128] [815]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 1920x1080-SGBRG10_1X10 - Selected unicam format: 1920x1080-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 1280x720
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 20000 bytes
+ ✓ PASSED
+3.3. Testing MJPEG 1920x1080...
+[1:34:45.650480275] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:45.693463819] [819]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:45.695561154] [819]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera configuration adjusted by libcamera!
+[1:34:45.696243698] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 1920x1080-YUYV
+[1:34:45.696635395] [819]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 1920x1080-SGBRG10_1X10 - Selected unicam format: 1920x1080-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 1920x1080
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 0
+      - FPS: 0.00
+      - Avg size: nan bytes
+      - Min size: 18446744073709551615 bytes
+      - Max size: 0 bytes
+      - Expected: 30000 bytes
+ ✓ PASSED
+
+=== TEST 4: Resolution Limits ===
+4.1. Testing minimum resolution (320x240)...
+[1:34:45.829470349] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:45.868442720] [823]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:45.870542870] [823]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:45.871136656] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 320x240-YUV420
+[1:34:45.871513353] [823]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 320x240
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    ✓ Min resolution works: 0 frames
+ ✓ PASSED
+4.2. Testing high resolution (2592x1944)...
+[1:34:45.985290744] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:46.027477616] [827]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:46.030010110] [827]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:46.030660321] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 2592x1944-YUV420
+[1:34:46.031024482] [827]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 2592x1944-SGBRG10_1X10 - Selected unicam format: 2592x1944-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 2592x1944
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]: Camera stopped
+    ✓ High resolution works: 0 frames
+ ✓ PASSED
+
+=== TEST 5: Format Switching ===
+5.1. Testing YUV420 format...
+[1:34:46.184348660] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:46.223958780] [831]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:46.226532421] [831]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:46.227121763] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[1:34:46.227468461] [831]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    ✓ YUV420: 0 frames captured
+5.2. Testing RGB888 format...
+[1:34:46.342837084] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:46.383977678] [835]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:46.386803407] [835]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[1:34:46.387397490] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-RGB888
+[1:34:46.387749465] [835]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    ✓ RGB888: 0 frames captured
+5.3. Testing MJPEG format...
+[1:34:46.505821264] [786]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[1:34:46.548695643] [839]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:34:46.550866402] [839]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera configuration adjusted by libcamera!
+[1:34:46.551457244] [786]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUYV
+[1:34:46.551832479] [839]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[INFO]:    Capturing frames for 2 seconds...
+[INFO]: Camera stopped
+    ✓ MJPEG: 26 frames captured
+    ✓ All formats work independently
+ ✓ PASSED
+
+╔════════════════════════════════════════╗
+║  ✓ ALL FORMAT TESTS PASSED             ║
+╚════════════════════════════════════════╝

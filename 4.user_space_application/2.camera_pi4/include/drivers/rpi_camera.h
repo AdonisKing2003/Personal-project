@@ -14,7 +14,7 @@ typedef struct rpi_camera_t rpi_camera_t;
 typedef enum {
     RPI_FMT_YUV420,
     RPI_FMT_RGB888,
-    RPI_FMT_MJPEG
+    RPI_FMT_MJPEG /* MJPEG is not natively supported by libcamera on Raspberry Pi */
 } rpi_format_t;
 
 typedef struct {

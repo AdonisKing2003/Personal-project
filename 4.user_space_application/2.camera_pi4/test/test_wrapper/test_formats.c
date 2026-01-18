@@ -23,6 +23,22 @@ typedef struct {
     uint64_t end_time;
 } format_stats_t;
 
+void WaitForFirstFrame(rpi_camera_t *cam) {
+    int max_wait = 1000; // 1 second
+    int waited = 0;
+    rpi_frame_t dummy;
+    while (rpi_camera_try_get_frame(cam, &dummy) != 0 && waited < max_wait) {
+        usleep(10000); // 10ms
+        waited += 10;
+    }
+    if (waited >= max_wait) {
+        printf("[ERROR]: No frames received after 1 second!\n");
+    } else {
+        printf("[INFO]: First frame received after %dms\n", waited);
+        rpi_camera_release_frame(&dummy);
+    }
+}
+        
 // ============================================================================
 // TEST 1: YUV420 Format
 // ============================================================================
@@ -43,14 +59,15 @@ void test_yuv420() {
         int ret = rpi_camera_start(cam);
         assert(ret == 0);
 
+        WaitForFirstFrame(cam);
+
         // Initialize statistics
         format_stats_t stats = {0};
         stats.start_time = get_time_ns();
+        stats.end_time = stats.start_time;
         stats.min_size = SIZE_MAX;
-
-        uint64_t end_ts = stats.start_time + 2ULL * 1000 * 1000 * 1000; // 2 seconds
         printf("[INFO]:    Capturing frames for 2 seconds...\n");
-        while (get_time_ns() < end_ts) {
+        while (get_time_ns() - stats.start_time < 4ULL * 1000 * 1000 * 1000) {
             rpi_frame_t frame;
 
             if (rpi_camera_try_get_frame(cam, &frame) == 0) {
@@ -66,12 +83,11 @@ void test_yuv420() {
                 stats.end_time = get_time_ns();
 
                 rpi_camera_release_frame(&frame);
-            } else {
-                // Avoid busy spin
-                usleep(1000); // 1 ms
+            }
+            else {
+                usleep(1000); // 1ms
             }
         }
-
         ret = rpi_camera_stop(cam);
         assert(ret == 0);
 
@@ -86,6 +102,7 @@ void test_yuv420() {
         // Print statistics
         printf("    Statistics:\n");
         printf("      - Frames: %d\n", stats.frame_count);
+        printf("      - estimate time: %llu\n", stats.end_time - stats.start_time);
         printf("      - FPS: %.2f\n", fps);
         printf("      - Avg size: %.0f bytes\n", avg_size);
         printf("      - Min size: %zu bytes\n", stats.min_size);
@@ -121,15 +138,15 @@ void test_rgb888() {
         // Start camera
         int ret = rpi_camera_start(cam);
         assert(ret == 0);
-        
+        WaitForFirstFrame(cam);
+
         // Initialize statistics
         format_stats_t stats = {0};
         stats.start_time = get_time_ns();
+        stats.end_time = get_time_ns();
         stats.min_size = SIZE_MAX;
-
-        uint64_t end_ts = stats.start_time + 2ULL * 1000 * 1000 * 1000; // 2 seconds
         printf("[INFO]:    Capturing frames for 2 seconds...\n");
-        while (get_time_ns() < end_ts) {
+        while (get_time_ns() - stats.start_time < 2ULL * 1000 * 1000 * 1000) {
             rpi_frame_t frame;
 
             if (rpi_camera_try_get_frame(cam, &frame) == 0) {
@@ -165,6 +182,7 @@ void test_rgb888() {
         // Print statistics
         printf("    Statistics:\n");
         printf("      - Frames: %d\n", stats.frame_count);
+        printf("      - estimate time: %llu\n", stats.end_time - stats.start_time);
         printf("      - FPS: %.2f\n", fps);
         printf("      - Avg size: %.0f bytes\n", avg_size);
         printf("      - Min size: %zu bytes\n", stats.min_size);
@@ -200,15 +218,15 @@ void test_mjpeg() {
         // Start camera
         int ret = rpi_camera_start(cam);
         assert(ret == 0);
+        WaitForFirstFrame(cam);
         
         // Initialize statistics
         format_stats_t stats = {0};
         stats.start_time = get_time_ns();
+        stats.end_time = stats.start_time;
         stats.min_size = SIZE_MAX;
-
-        uint64_t end_ts = stats.start_time + 2ULL * 1000 * 1000 * 1000; // 2 seconds
         printf("[INFO]:    Capturing frames for 2 seconds...\n");
-        while (get_time_ns() < end_ts) {
+        while (get_time_ns() - stats.start_time < 4ULL * 1000 * 1000 * 1000) {
             rpi_frame_t frame;
 
             if (rpi_camera_try_get_frame(cam, &frame) == 0) {
@@ -244,6 +262,7 @@ void test_mjpeg() {
         // Print statistics
         printf("    Statistics:\n");
         printf("      - Frames: %d\n", stats.frame_count);
+        printf("      - estimate time: %llu\n", stats.end_time - stats.start_time);
         printf("      - FPS: %.2f\n", fps);
         printf("      - Avg size: %.0f bytes\n", avg_size);
         printf("      - Min size: %zu bytes\n", stats.min_size);
@@ -271,15 +290,14 @@ void test_resolution_limits() {
     // Start camera
     int ret = rpi_camera_start(cam);
     assert(ret == 0);
+    WaitForFirstFrame(cam);
 
     // Initialize statistics
     format_stats_t stats = {0};
     stats.start_time = get_time_ns();
-    stats.min_size = SIZE_MAX;
-
-    uint64_t end_ts = stats.start_time + 2ULL * 1000 * 1000 * 1000; // 2 seconds
-    printf("[INFO]:    Capturing frames for 2 seconds...\n");
-    while (get_time_ns() < end_ts) {
+    stats.end_time = stats.start_time;
+    printf("[INFO]:    Capturing frames for 1 seconds...\n");
+    while (get_time_ns() - stats.start_time < 1ULL * 1000 * 1000 * 1000) {
         rpi_frame_t frame;
         if (rpi_camera_try_get_frame(cam, &frame) == 0) {
             stats.frame_count++;
@@ -313,8 +331,10 @@ void test_resolution_limits() {
         stats = (format_stats_t){0};
         ret = rpi_camera_start(cam);
         if (ret == 0) {
-            /* Get frame during 1 seconds */
-            while (get_time_ns() < end_ts) {
+            stats.start_time = get_time_ns();
+            stats.end_time = stats.start_time;
+            printf("[INFO]:    Capturing frames for 1 seconds...\n");
+            while (get_time_ns() - stats.start_time < 1ULL * 1000 * 1000 * 1000) {
                 rpi_frame_t frame;
                 if (rpi_camera_try_get_frame(cam, &frame) == 0) {
                     stats.frame_count++;
@@ -353,10 +373,10 @@ void test_resolution_limits() {
 void test_format_switching() {
     printf("\n=== TEST 5: Format Switching ===\n");
     
-    rpi_format_t formats[] = {RPI_FMT_YUV420, RPI_FMT_RGB888, RPI_FMT_MJPEG};
-    const char *format_names[] = {"YUV420", "RGB888", "MJPEG"};
+    rpi_format_t formats[] = {RPI_FMT_YUV420, RPI_FMT_RGB888};
+    const char *format_names[] = {"YUV420", "RGB888"};
     
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
         printf("5.%d. Testing %s format...\n", i+1, format_names[i]);
         
         rpi_camera_t *cam = rpi_camera_create(640, 480, formats[i]);
@@ -364,15 +384,15 @@ void test_format_switching() {
         
         int ret = rpi_camera_start(cam);
         assert(ret == 0);
-        
+        WaitForFirstFrame(cam);
+
         // Initialize statistics
         format_stats_t stats = {0};
         stats.start_time = get_time_ns();
+        stats.end_time = stats.start_time;
         stats.min_size = SIZE_MAX;
-
-        uint64_t end_ts = stats.start_time + 2ULL * 1000 * 1000 * 1000; // 2 seconds
-        printf("[INFO]:    Capturing frames for 2 seconds...\n");
-        while (get_time_ns() < end_ts) {
+        printf("[INFO]:    Capturing frames for 1 seconds...\n");
+        while (get_time_ns() - stats.start_time < 1ULL * 1000 * 1000 * 1000) {
             rpi_frame_t frame;
             if (rpi_camera_try_get_frame(cam, &frame) == 0) {
                 stats.frame_count++;
@@ -415,7 +435,7 @@ int main() {
     
     test_yuv420();
     test_rgb888();
-    test_mjpeg();
+    // test_mjpeg(); // MJPEG is not natively supported by libcamera on Raspberry Pi
     test_resolution_limits();
     test_format_switching();
     

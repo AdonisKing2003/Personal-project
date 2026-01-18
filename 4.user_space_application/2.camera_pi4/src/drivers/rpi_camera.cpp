@@ -171,7 +171,9 @@ static PixelFormat to_libcamera_format(rpi_format_t fmt) {
         case RPI_FMT_RGB888:
             return formats::RGB888;
         case RPI_FMT_MJPEG:
-            return formats::MJPEG;
+            // return formats::MJPEG;
+            std::cerr << "[WARN] MJPEG not supported by libcamera, using YUYV" << std::endl;
+            return formats::YUYV;  // or YUV420
         default:
             return formats::YUV420;
     }
@@ -180,7 +182,10 @@ static PixelFormat to_libcamera_format(rpi_format_t fmt) {
 // Request completion handler
 static void request_complete(Request *request) {
     if (request->status() == Request::RequestCancelled)
+    {
+        std::cout << "[DEBUG] Request cancelled. Cookie: " << request->cookie() << std::endl;
         return;
+    }
 
     // Get camera from global map using cookie
      uint64_t cookie = request->cookie();
@@ -189,6 +194,10 @@ static void request_complete(Request *request) {
          std::cerr << "Camera not found for cookie: " << cookie << std::endl;
          return;
      }
+
+     std::cout << "[DEBUG] Request completed! Status: " << request->status() 
+              << " Cookie: " << request->cookie() << std::endl;
+
      rpi_camera_t *cam = it->second;
      FramePipeline *pipeline = cam->pipeline.get();
 
@@ -214,11 +223,31 @@ static void request_complete(Request *request) {
                 
                 /* -------- COPY FRAME -------- */
                 InternalFrame copy;
-                copy.data.resize(planes[0].length);
-                memcpy(copy.data.data(), data, planes[0].length);
-
                 copy.timestamp = metadata.timestamp;
                 copy.sequence  = metadata.sequence;
+
+                size_t total_size = 0;
+                for (const auto &p : planes)
+                    total_size += p.length;
+
+                copy.data.resize(total_size);
+
+                uint8_t *dst = copy.data.data();
+                size_t offset = 0;
+
+                for (const auto &p : planes) {
+                    void *src = mmap(NULL, p.length, PROT_READ,
+                                    MAP_SHARED, p.fd.get(), 0);
+                    if (src == MAP_FAILED) {
+                        std::cerr << "mmap failed\n";
+                        continue;
+                    }
+
+                    memcpy(dst + offset, src, p.length);
+                    offset += p.length;
+
+                    munmap(src, p.length);
+                }
 
                 pipeline->push(std::move(copy));
                 
@@ -328,27 +357,6 @@ rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     {
         cam->buffers.push_back(b.get());
     }
-    // const std::vector<std::unique_ptr<FrameBuffer>> &buffers = 
-    //     cam->allocator->buffers(stream);
-    
-    // for (unsigned int i = 0; i < buffers.size(); ++i) {
-    //     std::unique_ptr<Request> request = cam->camera->createRequest(cam->cookie);
-    //     if (!request) {
-    //         std::cerr << "Failed to create request" << std::endl;
-    //         delete cam;
-    //         return nullptr;
-    //     }
-        
-    //     const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
-    //     ret = request->addBuffer(stream, buffer.get());
-    //     if (ret < 0) {
-    //         std::cerr << "Failed to add buffer to request" << std::endl;
-    //         delete cam;
-    //         return nullptr;
-    //     }
-        
-    //     cam->requests.push_back(std::move(request));
-    // }
     
     std::cout << "Camera created: " << width << "x" << height << std::endl;
     return cam;
@@ -391,6 +399,8 @@ int rpi_camera_start(rpi_camera_t *cam) {
         return 0;
     }
 
+    int ret = 0;
+
     cam->requests.clear();
     
     // Connect request completion signal
@@ -404,8 +414,12 @@ int rpi_camera_start(rpi_camera_t *cam) {
         cam->signal_connected = true;
     }
     
+    cam->pipeline->reset();
+
+    cam->running = true;
+
     // Start camera
-    int ret = cam->camera->start();
+    ret = cam->camera->start();
     if (ret) {
         std::cerr << "Failed to start camera" << std::endl;
         return -1;
@@ -414,10 +428,6 @@ int rpi_camera_start(rpi_camera_t *cam) {
         std::cout<<"[INFO]: Camera Start...!"<<std::endl;
     }
 
-    cam->pipeline->reset();
-
-    cam->running = true;
-    
     // Queue all requests
     for (std::unique_ptr<Request> &request : cam->requests) {
         ret = cam->camera->queueRequest(request.get());

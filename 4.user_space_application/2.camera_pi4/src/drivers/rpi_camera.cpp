@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include <libcamera/libcamera.h>
+#include <libcamera/control_ids.h>
 #include "rpi_camera.h"
 #include <sys/mman.h>
 #include <iostream>
@@ -14,6 +15,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <cstring>
+#include <unistd.h>
 
 using namespace libcamera;
 
@@ -263,7 +265,23 @@ static void request_complete(Request *request) {
     }
 }
 
-extern "C" {
+// extern "C" {
+
+void WaitForFirstFrame(rpi_camera_t *cam) {
+    int max_wait = 1000; // 1 second
+    int waited = 0;
+    rpi_frame_t dummy;
+    while (rpi_camera_try_get_frame(cam, &dummy) != 0 && waited < max_wait) {
+        usleep(10000); // 10ms
+        waited += 10;
+    }
+    if (waited >= max_wait) {
+        printf("[ERROR]: No frames received after 1 second!\n");
+    } else {
+        printf("[INFO]: First frame received after %dms\n", waited);
+        rpi_camera_release_frame(&dummy);
+    }
+}
 
 rpi_camera_t* rpi_camera_create(int width, int height, rpi_format_t format) {
     rpi_camera_t *cam = new rpi_camera_t();
@@ -506,66 +524,89 @@ void rpi_camera_destroy(rpi_camera_t *cam) {
 }
 
 // Các hàm cấu hình nâng cao
+static float clamp(float v, float min, float max) {
+    return std::max(min, std::min(v, max));
+}
+
+static int clamp_int(int v, int min, int max) {
+    return std::max(min, std::min(v, max));
+}
+
 int rpi_camera_set_brightness(rpi_camera_t *cam, float value) {
-    if (!cam) return -1;
+    if (!cam) return -EINVAL;
     
-    // ControlList controls;
-    // controls.set(controls::Brightness, value);
-    
+    auto &info = cam->camera->controls().at(&controls::Brightness);
+    float v = clamp(value, info.min().get<float>(), info.max().get<float>());
+
+    if (v != value) {
+        fprintf(stderr,
+            "[WARN] Brightness %.2f out of range, clamped to %.2f\n",
+            value, v);
+    }
+
     // Create a request and add controls
     for (auto &req : cam->requests) {
-        req->controls().set(controls::Brightness, value);
+        req->controls().set(controls::Brightness, v);
     }
-    // Request *request = cam->requests[0].get();
-    // request->controls() = controls;
     
     return 0;
 }
 
 int rpi_camera_set_contrast(rpi_camera_t *cam, float value) {
-    if (!cam) return -1;
+    if (!cam) return -EINVAL;
     
-    // ControlList controls;
-    // controls.set(controls::Contrast, value);
-    
-    // Request *request = cam->requests[0].get();
-    // request->controls() = controls;
+    auto &info = cam->camera->controls().at(&controls::Contrast);
+    float v = clamp(value, info.min().get<float>(), info.max().get<float>());
+
+    if (v != value) {
+        fprintf(stderr,
+            "[WARN] Contrast %.2f out of range, clamped to %.2f\n",
+            value, v);
+    }
 
     for (auto &req : cam->requests) {
-        req->controls().set(controls::Contrast, value);
+        req->controls().set(controls::Contrast, v);
     }
     
     return 0;
 }
 
 int rpi_camera_set_exposure(rpi_camera_t *cam, int microseconds) {
-    if (!cam) return -1;
+    if (!cam) return -EINVAL;
     
-    // ControlList controls;
-    // controls.set(controls::ExposureTime, microseconds);
-    
-    // Request *request = cam->requests[0].get();
-    // request->controls() = controls;
+    auto &info = cam->camera->controls().at(&controls::ExposureTime);
+    int v = clamp_int(microseconds, info.min().get<int>(), info.max().get<int>());
+
+    if (v != microseconds) {
+        fprintf(stderr,
+            "[WARN] Exposure %d out of range, clamped to %d\n",
+            microseconds, v);
+    }
+
     for (auto &req : cam->requests) {
-        req->controls().set(controls::ExposureTime, microseconds);
+        req->controls().set(controls::ExposureTime, v);
     }
     
     return 0;
 }
 
 int rpi_camera_set_gain(rpi_camera_t *cam, float value) {
-    if (!cam) return -1;
+    if (!cam) return -EINVAL;
     
-    // ControlList controls;
-    // controls.set(controls::AnalogueGain, value);
-    
-    // Request *request = cam->requests[0].get();
-    // request->controls() = controls;
+    auto &info = cam->camera->controls().at(&controls::AnalogueGain);
+    float v = clamp(value, info.min().get<float>(), info.max().get<float>());
+
+    if (v != value) {
+        fprintf(stderr,
+            "[WARN] Gain %.2f out of range, clamped to %.2f\n",
+            value, v);
+    }
+
     for (auto &req : cam->requests) {
-        req->controls().set(controls::AnalogueGain, value);
+        req->controls().set(controls::AnalogueGain, v);
     }
     
     return 0;
 }
 
-} // extern "C"
+// } // extern "C"

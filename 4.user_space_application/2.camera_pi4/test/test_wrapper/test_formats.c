@@ -22,22 +22,6 @@ typedef struct {
     uint64_t start_time;
     uint64_t end_time;
 } format_stats_t;
-
-void WaitForFirstFrame(rpi_camera_t *cam) {
-    int max_wait = 1000; // 1 second
-    int waited = 0;
-    rpi_frame_t dummy;
-    while (rpi_camera_try_get_frame(cam, &dummy) != 0 && waited < max_wait) {
-        usleep(10000); // 10ms
-        waited += 10;
-    }
-    if (waited >= max_wait) {
-        printf("[ERROR]: No frames received after 1 second!\n");
-    } else {
-        printf("[INFO]: First frame received after %dms\n", waited);
-        rpi_camera_release_frame(&dummy);
-    }
-}
         
 // ============================================================================
 // TEST 1: YUV420 Format

@@ -201,12 +201,12 @@ void test_frame_validation()
         assert(frame.size > 0);
 
         size_t expected = 640 * 480 * 3 / 2;
-        // assert(frame.size >= expected * 0.9);
-        // assert(frame.size <= expected * 1.1);
+        assert(frame.size >= expected * 0.9);
+        assert(frame.size <= expected * 1.1);
         // assert(frame.width == expected_width);
         // assert(frame.height == expected_height);
-        // assert(frame.sequence > 0);
-        // assert(frame.timestamp > 0);
+        assert(frame.sequence > 0);
+        assert(frame.timestamp > 0);
 
         if (last_ts)
             assert(frame.timestamp > last_ts);

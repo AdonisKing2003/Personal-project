@@ -66,10 +66,17 @@ add_library(rpi_camera_wrapper SHARED
   ${RPI_CAMERA_WRAPPER_SOURCES}
 )
 
+# Set linker language to C++
+set_target_properties(rpi_camera_wrapper PROPERTIES
+  LINKER_LANGUAGE CXX
+)
+target_compile_features(rpi_camera_wrapper PUBLIC cxx_std_17)
+
 target_link_libraries(rpi_camera_wrapper PUBLIC
   ${LIBCAMERA_LIBRARIES}
   ${LIBCAMERA_BASE_LIBRARIES}
   Threads::Threads
+  stdc++
 )
 
 target_compile_options(rpi_camera_wrapper PRIVATE
@@ -192,6 +199,9 @@ target_link_libraries(test_wrapper_controls PRIVATE
   rpi_camera_wrapper
   Threads::Threads
 )
+target_sources(test_wrapper_controls PRIVATE
+  ${UTILS_SOURCES}
+)
 
 # Test 4: Stress tests
 add_executable(test_wrapper_stress
@@ -201,6 +211,9 @@ add_executable(test_wrapper_stress
 target_link_libraries(test_wrapper_stress PRIVATE
   rpi_camera_wrapper
   Threads::Threads
+)
+target_sources(test_wrapper_stress PRIVATE
+  ${UTILS_SOURCES}
 )
 
 # ============================================================================
@@ -217,6 +230,9 @@ add_executable(sample_camera_app
 target_link_libraries(sample_camera_app PRIVATE
   rpi_camera_wrapper
   Threads::Threads
+)
+target_sources(sample_camera_app PRIVATE
+  ${UTILS_SOURCES}
 )
 
 # ============================================================================

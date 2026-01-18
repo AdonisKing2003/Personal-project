@@ -959,3 +959,707 @@ Camera created: 640x480
 ╔════════════════════════════════════════╗
 ║  ✓ ALL FORMAT TESTS PASSED             ║
 ╚════════════════════════════════════════╝
+
+======================================================================================================================================
+root@raspberrypi4-64:~/workspace# ./test_wrapper_controls 
+╔════════════════════════════════════════╗
+║  RPI Camera - Control Tests            ║
+╚════════════════════════════════════════╝
+
+=== TEST 1: Brightness Control ===
+[3:35:56.245878227] [1937]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[3:35:56.282351677] [1938]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[3:35:56.285265305] [1938]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[3:35:56.285812275] [1937]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[3:35:56.286185749] [1938]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+1.1. Testing brightness: Dark (-0.5)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[INFO]: First frame received after 380ms
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 18
+      - Samples: 10
+      - Avg brightness: 149/255
+1.2. Testing brightness: Normal (0.0)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[INFO]: First frame received after 130ms
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 17
+      - Samples: 10
+      - Avg brightness: 152/255
+    ✓ Brightness control working
+1.3. Testing brightness: Bright (0.5)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[INFO]: First frame received after 130ms
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request completed! Status: 1 Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[DEBUG] Request cancelled. Cookie: 1
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 14
+      - Samples: 10
+      - Avg brightness: 153/255
+    ✓ Brightness control working
+
+=== TEST 2: Contrast Control ===
+[3:36:00.085032686] [1937]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[3:36:00.127253690] [1945]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[3:36:00.129488609] [1945]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[3:36:00.130144688] [1937]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[3:36:00.130550717] [1945]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+2.1. Testing contrast: Low (0.5)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[INFO]: First frame received after 380ms
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 18
+    ✓ Contrast set successfully
+2.2. Testing contrast: Normal (1.0)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[INFO]: First frame received after 130ms
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 17
+    ✓ Contrast set successfully
+2.3. Testing contrast: High (1.5)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[INFO]: First frame received after 130ms
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request completed! Status: 1 Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[DEBUG] Request cancelled. Cookie: 2
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 17
+    ✓ Contrast set successfully
+
+=== TEST 3: Exposure Control ===
+[3:36:04.107604260] [1937]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[3:36:04.149043132] [1951]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[3:36:04.151173127] [1951]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[3:36:04.151799448] [1937]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[3:36:04.152187885] [1951]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+3.1. Testing exposure: Short (5ms)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[INFO]: First frame received after 380ms
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 35
+      - Avg brightness: 149/255
+    ✓ Exposure set successfully
+3.2. Testing exposure: Normal (10ms)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[INFO]: First frame received after 130ms
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 31
+      - Avg brightness: 153/255
+    ✓ Exposure set successfully
+3.3. Testing exposure: Long (20ms)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[INFO]: First frame received after 120ms
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request completed! Status: 1 Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[DEBUG] Request cancelled. Cookie: 3
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 35
+      - Avg brightness: 153/255
+    ✓ Exposure set successfully
+
+=== TEST 4: Gain Control ===
+[3:36:10.907617210] [1937]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[3:36:10.949219931] [1957]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[3:36:10.951318631] [1957]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[3:36:10.951866509] [1937]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[3:36:10.952259409] [1957]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+4.1. Testing gain: Low (1.0)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[INFO]: First frame received after 380ms
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 27
+    ✓ Gain set successfully
+4.2. Testing gain: Medium (4.0)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[INFO]: First frame received after 130ms
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 35
+    ✓ Gain set successfully
+4.3. Testing gain: High (8.0)...
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[INFO]: First frame received after 130ms
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request completed! Status: 1 Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[DEBUG] Request cancelled. Cookie: 4
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 32
+    ✓ Gain set successfully
+
+=== TEST 5: Combined Controls ===
+[3:36:17.264732915] [1937]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[3:36:17.307320081] [1963]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[3:36:17.309578500] [1963]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[3:36:17.310097397] [1937]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[3:36:17.310463149] [1963]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+5.1. Setting all controls...
+    ✓ All controls set
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[INFO]: First frame received after 380ms
+5.2. Capturing with combined controls...
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request completed! Status: 1 Cookie: 5
+[DEBUG] Request cancelled. Cookie: 5
+[DEBUG] Request cancelled. Cookie: 5
+[DEBUG] Request cancelled. Cookie: 5
+[DEBUG] Request cancelled. Cookie: 5
+[INFO]: Camera stopped
+    Statistics:
+      - Frames: 35
+    ✓ Combined controls work together
+
+=== TEST 6: Dynamic Control Changes ===
+[3:36:19.808535172] [1937]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[3:36:19.852624661] [1967]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[3:36:19.854772063] [1967]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[3:36:19.855354181] [1937]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[3:36:19.855731748] [1967]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[INFO]: First frame received after 380ms
+6.1. Changing brightness while capturing...
+    Set brightness to -0.5
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+    Set brightness to 0.0
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+    Set brightness to 0.5
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+[DEBUG] Request completed! Status: 1 Cookie: 6
+    ✓ Dynamic changes work
+[DEBUG] Request cancelled. Cookie: 6
+[DEBUG] Request cancelled. Cookie: 6
+[DEBUG] Request cancelled. Cookie: 6
+[DEBUG] Request cancelled. Cookie: 6
+[INFO]: Camera stopped
+    Total frames: 39
+
+=== TEST 7: Invalid Control Values ===
+[3:36:22.557216737] [1937]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+dirty (2025-12-07T15:39:35UTC)
+[3:36:22.599166471] [1971]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[3:36:22.601364725] [1971]  INFO RPI vc4.cpp:401 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media4 and ISP device /dev/media0
+Find camera: /base/soc/i2c0mux/i2c@1/ov5647@36
+[INFO]: Camera config validate!
+[3:36:22.601888881] [1937]  INFO Camera camera.cpp:1202 configuring streams: (0) 640x480-YUV420
+[3:36:22.602298354] [1971]  INFO RPI vc4.cpp:570 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 640x480-SGBRG10_1X10 - Selected unicam format: 640x480-pGAA
+[INFO]: Camera configuration!
+[INFO]: Allocate buffers...!
+
+Camera created: 640x480
+7.1. Testing extreme brightness values...
+[WARN] Brightness -2.00 out of range, clamped to -1.00
+[WARN] Brightness 2.00 out of range, clamped to 1.00
+    ✓ Invalid values handled gracefully (no crash, camera still streams)
+7.2. Testing extreme contrast values...
+[WARN] Contrast -1.00 out of range, clamped to 0.00
+    ✓ Invalid values handled gracefully (no crash, camera still streams)
+7.3. Testing extreme gain values...
+[WARN] Gain 0.10 out of range, clamped to 1.00
+[WARN] Gain 100.00 out of range, clamped to 63.94
+    ✓ Invalid values handled gracefully (no crash, camera still streams)
+[INFO]: Camera Start...!
+[INFO]: Camera started...!
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[INFO]: First frame received after 380ms
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request completed! Status: 1 Cookie: 7
+[DEBUG] Request cancelled. Cookie: 7
+[DEBUG] Request cancelled. Cookie: 7
+[DEBUG] Request cancelled. Cookie: 7
+[DEBUG] Request cancelled. Cookie: 7
+[INFO]: Camera stopped
+    Camera still works: 18 frames
+
+╔════════════════════════════════════════╗
+║  ✓ ALL CONTROL TESTS PASSED            ║
+╚════════════════════════════════════════╝

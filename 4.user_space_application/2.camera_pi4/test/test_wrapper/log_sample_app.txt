@@ -1,0 +1,63 @@
+4. CÁCH 1 – stdin NON-BLOCKING + select() (KHUYẾN NGHỊ)
+Setup stdin non-blocking
+#include <fcntl.h>
+
+int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+
+Control thread
+while (state->running) {
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(STDIN_FILENO, &rfds);
+
+    struct timeval tv = { .tv_sec = 1, .tv_usec = 0 };
+
+    int ret = select(STDIN_FILENO + 1, &rfds, NULL, NULL, &tv);
+
+    if (ret > 0 && FD_ISSET(STDIN_FILENO, &rfds)) {
+        char cmd;
+        if (read(STDIN_FILENO, &cmd, 1) > 0) {
+            if (cmd == 'q') {
+                state->running = 0;
+                break;
+            }
+        }
+    }
+}
+
+
+✔️ Ctrl+C → running = 0
+✔️ Thread wake mỗi 1s
+✔️ Không block
+✔️ Không crash
+
+5. CÁCH 2 – DÙNG poll() (CLEAN HƠN)
+struct pollfd pfd = {
+    .fd = STDIN_FILENO,
+    .events = POLLIN
+};
+
+while (state->running) {
+    int ret = poll(&pfd, 1, 1000); // 1s timeout
+    if (ret > 0 && (pfd.revents & POLLIN)) {
+        char cmd;
+        read(STDIN_FILENO, &cmd, 1);
+        if (cmd == 'q')
+            state->running = 0;
+    }
+}
+
+6. CÁCH 3 – Self-pipe trick (PRO LEVEL)
+
+Signal handler:
+
+write(signal_pipe_fd[1], "x", 1);
+
+
+Control thread:
+
+poll({ stdin, signal_pipe });
+
+
+➡️ Ctrl+C wakes thread ngay lập tức

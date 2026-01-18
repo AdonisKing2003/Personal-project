@@ -12,6 +12,8 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include "utils.h"
+#include <fcntl.h>
 
 // ============================================================================
 // Configuration
@@ -68,6 +70,18 @@ static app_state_t *g_app_state = NULL;
 // ============================================================================
 // Utility Functions
 // ============================================================================
+static void make_stdin_nonblocking(void)
+{
+    int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+    if (flags < 0) {
+        perror("fcntl(F_GETFL)");
+        return;
+    }
+
+    if (fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK) < 0) {
+        perror("fcntl(F_SETFL)");
+    }
+}
 
 // Get current time in milliseconds
 static uint64_t get_time_ms() {
@@ -155,77 +169,73 @@ static int save_frame_to_file(const app_state_t *state,
 // ============================================================================
 // Frame Callback
 // ============================================================================
-static void frame_callback(rpi_frame_t *frame, void *userdata) {
-    app_state_t *state = (app_state_t *)userdata;
+void *frame_callback(void *arg) {
+    printf("Frame callback thread started.\n");
+    app_state_t *app = (app_state_t *)arg;
+    printf("Frame callback thread started.\n");
     
-    if (!state || !state->running) {
-        return;
-    }
-    
-    // Lock for thread-safe statistics update
-    pthread_mutex_lock(&state->stats_mutex);
-    
-    // First frame initialization
-    if (state->total_frames == 0) {
-        state->first_timestamp = frame->timestamp;
-        state->min_frame_size = frame->size;
-        state->max_frame_size = frame->size;
-        
-        printf("\n┌─────────────────────────────────────────┐\n");
-        printf("│ First frame captured!                   │\n");
-        printf("├─────────────────────────────────────────┤\n");
-        printf("│ Sequence:  %8u                     │\n", frame->sequence);
-        printf("│ Size:      %8zu bytes               │\n", frame->size);
-        printf("│ Timestamp: %llu                         │\n", frame->timestamp);
-        printf("└─────────────────────────────────────────┘\n\n");
-    }
-    
-    // Update statistics
-    state->total_frames++;
-    state->last_timestamp = frame->timestamp;
-    state->total_bytes += frame->size;
-    
-    if (frame->size < state->min_frame_size) {
-        state->min_frame_size = frame->size;
-    }
-    if (frame->size > state->max_frame_size) {
-        state->max_frame_size = frame->size;
-    }
-    
-    // Calculate current FPS
-    double duration_sec = (frame->timestamp - state->first_timestamp) / 1e9;
-    double current_fps = duration_sec > 0 ? state->total_frames / duration_sec : 0;
-    
-    // Print progress every 30 frames
-    if (state->total_frames % 30 == 0) {
-        double avg_size = (double)state->total_bytes / state->total_frames;
-        unsigned char brightness = 0;
-        
-        // Calculate brightness for YUV420
-        if (state->format == RPI_FMT_YUV420) {
-            brightness = calculate_brightness(frame->data, frame->size);
-        }
-        
-        printf("Frame %5d | FPS: %5.1f | Size: %7zu B | Avg: %7.0f B",
-               state->total_frames, current_fps, frame->size, avg_size);
-        
-        if (state->format == RPI_FMT_YUV420) {
-            printf(" | Brightness: %3u/255", brightness);
-        }
-        
-        printf("\n");
-    }
-    
-    // Save frame periodically if enabled
-    if (state->save_enabled && (state->total_frames % SAVE_INTERVAL == 0)) {
-        if (save_frame_to_file(state, frame) == 0) {
-            state->saved_frames++;
-            printf("  → Saved frame to: %s/frame_%04d_seq%u.*\n",
-                   OUTPUT_DIR, state->saved_frames - 1, frame->sequence);
+    WaitForFirstFrame(app->camera); /* Ensure first frame is received */
+    app->first_timestamp = get_time_ns();
+    app->last_timestamp = app->first_timestamp;
+    while(app->running) {
+        rpi_frame_t frame;
+        if (rpi_camera_try_get_frame(app->camera, &frame) == 0) {
+            // Process frame
+            // Lock for thread-safe statistics update
+            pthread_mutex_lock(&app->stats_mutex);
+            // Update statistics
+            app->total_frames++;
+            // app->last_timestamp = frame.timestamp;
+            app->last_timestamp = get_time_ns();
+            app->total_bytes += frame.size;
+            
+            if (frame.size < app->min_frame_size) {
+                app->min_frame_size = frame.size;
+            }
+            if (frame.size > app->max_frame_size) {
+                app->max_frame_size = frame.size;
+            }
+            
+            // Calculate current FPS
+            double duration_sec = (app->last_timestamp - app->first_timestamp) / 1e9;
+            double current_fps = duration_sec > 0 ? app->total_frames / duration_sec : 0;
+            
+            // Print progress every 30 frames
+            if (app->total_frames % 30 == 0) {
+                double avg_size = (double)app->total_bytes / app->total_frames;
+                unsigned char brightness = 0;
+                
+                // Calculate brightness for YUV420
+                if (app->format == RPI_FMT_YUV420) {
+                    brightness = calculate_brightness(frame.data, frame.size);
+                }
+                
+                printf("Frame %5d | FPS: %5.1f | Size: %7zu B | Avg: %7.0f B",
+                    app->total_frames, current_fps, frame.size, avg_size);
+                
+                if (app->format == RPI_FMT_YUV420) {
+                    printf(" | Brightness: %3u/255", brightness);
+                }
+                
+                printf("\n");
+            }
+            
+            // Save frame periodically if enabled
+            if (app->save_enabled && (app->total_frames % SAVE_INTERVAL == 0)) {
+                if (save_frame_to_file(app, &frame) == 0) {
+                    app->saved_frames++;
+                    printf("  → Saved frame to: %s/frame_%04d_seq%u.*\n",
+                        OUTPUT_DIR, app->saved_frames - 1, frame.sequence);
+                }
+            }
+            
+            pthread_mutex_unlock(&app->stats_mutex);
+            rpi_camera_release_frame(&frame);
+        } else {
+            // No frame available, sleep briefly
+            usleep(1000); // 1ms
         }
     }
-    
-    pthread_mutex_unlock(&state->stats_mutex);
 }
 
 // ============================================================================
@@ -235,7 +245,7 @@ static void signal_handler(int signum) {
     (void)signum;  // Unused
     
     if (g_app_state) {
-        printf("\n\n⚠ Signal received, stopping camera...\n");
+        // printf("\n\n⚠ Signal received, stopping camera...\n");
         g_app_state->running = false;
     }
 }
@@ -315,97 +325,109 @@ static void* control_thread(void *arg) {
     while (state->running) {
         print_menu();
         
-        if (scanf(" %c", &cmd) != 1) {
-            continue;
-        }
-        
-        switch (cmd) {
-            case 'b': {
-                printf("Enter brightness (-1.0 to 1.0): ");
-                float brightness;
-                if (scanf("%f", &brightness) == 1) {
-                    if (rpi_camera_set_brightness(state->camera, brightness) == 0) {
-                        state->brightness = brightness;
-                        printf("✓ Brightness set to %.2f\n", brightness);
-                    } else {
-                        printf("✗ Failed to set brightness\n");
+        // if (scanf(" %c", &cmd) != 1) {
+        //     continue;
+        // }
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(STDIN_FILENO, &rfds);
+
+        struct timeval tv = { .tv_sec = 1, .tv_usec = 0 };
+
+        int ret = select(STDIN_FILENO + 1, &rfds, NULL, NULL, &tv);
+
+        if (ret > 0 && FD_ISSET(STDIN_FILENO, &rfds)) {
+            char cmd;
+            if (read(STDIN_FILENO, &cmd, 1) > 0) {
+                switch (cmd) {
+                    case 'b': {
+                        printf("Enter brightness (-1.0 to 1.0): ");
+                        float brightness;
+                        if (scanf("%f", &brightness) == 1) {
+                            if (rpi_camera_set_brightness(state->camera, brightness) == 0) {
+                                state->brightness = brightness;
+                                printf("✓ Brightness set to %.2f\n", brightness);
+                            } else {
+                                printf("✗ Failed to set brightness\n");
+                            }
+                        }
+                        break;
                     }
-                }
-                break;
-            }
-            
-            case 'c': {
-                printf("Enter contrast (0.0 to 2.0): ");
-                float contrast;
-                if (scanf("%f", &contrast) == 1) {
-                    if (rpi_camera_set_contrast(state->camera, contrast) == 0) {
-                        state->contrast = contrast;
-                        printf("✓ Contrast set to %.2f\n", contrast);
-                    } else {
-                        printf("✗ Failed to set contrast\n");
+                    
+                    case 'c': {
+                        printf("Enter contrast (0.0 to 2.0): ");
+                        float contrast;
+                        if (scanf("%f", &contrast) == 1) {
+                            if (rpi_camera_set_contrast(state->camera, contrast) == 0) {
+                                state->contrast = contrast;
+                                printf("✓ Contrast set to %.2f\n", contrast);
+                            } else {
+                                printf("✗ Failed to set contrast\n");
+                            }
+                        }
+                        break;
                     }
-                }
-                break;
-            }
-            
-            case 'e': {
-                printf("Enter exposure time (microseconds, e.g., 10000): ");
-                int exposure;
-                if (scanf("%d", &exposure) == 1) {
-                    if (rpi_camera_set_exposure(state->camera, exposure) == 0) {
-                        state->exposure = exposure;
-                        printf("✓ Exposure set to %d µs\n", exposure);
-                    } else {
-                        printf("✗ Failed to set exposure\n");
+                    
+                    case 'e': {
+                        printf("Enter exposure time (microseconds, e.g., 10000): ");
+                        int exposure;
+                        if (scanf("%d", &exposure) == 1) {
+                            if (rpi_camera_set_exposure(state->camera, exposure) == 0) {
+                                state->exposure = exposure;
+                                printf("✓ Exposure set to %d µs\n", exposure);
+                            } else {
+                                printf("✗ Failed to set exposure\n");
+                            }
+                        }
+                        break;
                     }
-                }
-                break;
-            }
-            
-            case 'g': {
-                printf("Enter gain (1.0 to 16.0): ");
-                float gain;
-                if (scanf("%f", &gain) == 1) {
-                    if (rpi_camera_set_gain(state->camera, gain) == 0) {
-                        state->gain = gain;
-                        printf("✓ Gain set to %.2f\n", gain);
-                    } else {
-                        printf("✗ Failed to set gain\n");
+                    
+                    case 'g': {
+                        printf("Enter gain (1.0 to 16.0): ");
+                        float gain;
+                        if (scanf("%f", &gain) == 1) {
+                            if (rpi_camera_set_gain(state->camera, gain) == 0) {
+                                state->gain = gain;
+                                printf("✓ Gain set to %.2f\n", gain);
+                            } else {
+                                printf("✗ Failed to set gain\n");
+                            }
+                        }
+                        break;
                     }
+                    
+                    case 's': {
+                        state->save_enabled = !state->save_enabled;
+                        printf("✓ Frame saving: %s\n", 
+                            state->save_enabled ? "ENABLED" : "DISABLED");
+                        break;
+                    }
+                    
+                    case 'i': {
+                        printf("\n┌─────────────────────────────────────┐\n");
+                        printf("│      Current Settings               │\n");
+                        printf("├─────────────────────────────────────┤\n");
+                        printf("│ Brightness:  %6.2f                 │\n", state->brightness);
+                        printf("│ Contrast:    %6.2f                 │\n", state->contrast);
+                        printf("│ Exposure:    %6d µs              │\n", state->exposure);
+                        printf("│ Gain:        %6.2f                 │\n", state->gain);
+                        printf("│ Saving:      %s                    │\n", 
+                            state->save_enabled ? "ON " : "OFF");
+                        printf("└─────────────────────────────────────┘\n");
+                        break;
+                    }
+                    
+                    case 'q': {
+                        printf("Quitting...\n");
+                        state->running = false;
+                        return NULL;
+                    }
+                    
+                    default:
+                        printf("Unknown command: %c\n", cmd);
+                        break;
                 }
-                break;
             }
-            
-            case 's': {
-                state->save_enabled = !state->save_enabled;
-                printf("✓ Frame saving: %s\n", 
-                       state->save_enabled ? "ENABLED" : "DISABLED");
-                break;
-            }
-            
-            case 'i': {
-                printf("\n┌─────────────────────────────────────┐\n");
-                printf("│      Current Settings               │\n");
-                printf("├─────────────────────────────────────┤\n");
-                printf("│ Brightness:  %6.2f                 │\n", state->brightness);
-                printf("│ Contrast:    %6.2f                 │\n", state->contrast);
-                printf("│ Exposure:    %6d µs              │\n", state->exposure);
-                printf("│ Gain:        %6.2f                 │\n", state->gain);
-                printf("│ Saving:      %s                    │\n", 
-                       state->save_enabled ? "ON " : "OFF");
-                printf("└─────────────────────────────────────┘\n");
-                break;
-            }
-            
-            case 'q': {
-                printf("Quitting...\n");
-                state->running = false;
-                return NULL;
-            }
-            
-            default:
-                printf("Unknown command: %c\n", cmd);
-                break;
         }
     }
     
@@ -417,7 +439,7 @@ static void* control_thread(void *arg) {
 // ============================================================================
 int main(int argc, char *argv[]) {
     int ret;
-    pthread_t ctrl_thread;
+    pthread_t ctrl_thread, frame_thread;
     
     // ========================================================================
     // 1. Print banner
@@ -553,7 +575,7 @@ int main(int argc, char *argv[]) {
     // 7. Start camera
     // ========================================================================
     printf("→ Starting camera capture\n");
-    ret = rpi_camera_start(state.camera, frame_callback, &state);
+    ret = rpi_camera_start(state.camera);
     if (ret != 0) {
         fprintf(stderr, "✗ Failed to start camera\n");
         rpi_camera_destroy(state.camera);
@@ -562,15 +584,21 @@ int main(int argc, char *argv[]) {
     printf("✓ Camera started, capturing frames...\n");
     
     // ========================================================================
-    // 8. Start control thread
+    // 8. Start frame processing thread
+    // ========================================================================
+    printf("→ Starting processing capture frame\n");
+    pthread_create(&frame_thread, NULL, frame_callback, &state);
+
+    // ========================================================================
+    // 9. Start control thread
     // ========================================================================
     printf("→ Starting interactive control\n");
     printf("  (You can adjust settings while capturing)\n\n");
-    
+    make_stdin_nonblocking();
     pthread_create(&ctrl_thread, NULL, control_thread, &state);
     
     // ========================================================================
-    // 9. Main capture loop
+    // 10. Main capture loop
     // ========================================================================
     printf("═══════════════════════════════════════════════════════════\n");
     printf("              CAPTURING - Press 'q' to quit\n");
@@ -578,9 +606,9 @@ int main(int argc, char *argv[]) {
     
     // Wait for user to quit or duration to elapse
     pthread_join(ctrl_thread, NULL);
-    
+
     // ========================================================================
-    // 10. Stop camera
+    // 11. Stop camera
     // ========================================================================
     printf("\n→ Stopping camera\n");
     ret = rpi_camera_stop(state.camera);
@@ -591,14 +619,14 @@ int main(int argc, char *argv[]) {
     }
     
     // ========================================================================
-    // 11. Print statistics
+    // 12. Print statistics
     // ========================================================================
     if (state.total_frames > 0) {
         print_statistics(&state);
     }
     
     // ========================================================================
-    // 12. Cleanup
+    // 13. Cleanup
     // ========================================================================
     printf("\n→ Cleaning up\n");
     rpi_camera_destroy(state.camera);
@@ -606,7 +634,7 @@ int main(int argc, char *argv[]) {
     printf("✓ Cleanup complete\n");
     
     // ========================================================================
-    // 13. Final message
+    // 14. Final message
     // ========================================================================
     printf("\n");
     printf("╔═══════════════════════════════════════════════════════════╗\n");

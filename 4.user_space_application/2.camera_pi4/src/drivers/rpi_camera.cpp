@@ -197,8 +197,8 @@ static void request_complete(Request *request) {
          return;
      }
 
-     std::cout << "[DEBUG] Request completed! Status: " << request->status() 
-              << " Cookie: " << request->cookie() << std::endl;
+    //  std::cout << "[DEBUG] Request completed! Status: " << request->status() 
+    //           << " Cookie: " << request->cookie() << std::endl;
 
      rpi_camera_t *cam = it->second;
      FramePipeline *pipeline = cam->pipeline.get();
@@ -279,6 +279,13 @@ void WaitForFirstFrame(rpi_camera_t *cam) {
         printf("[ERROR]: No frames received after 1 second!\n");
     } else {
         printf("[INFO]: First frame received after %dms\n", waited);
+        printf("\n┌─────────────────────────────────────────┐\n");
+        printf("│ First frame captured!                   │\n");
+        printf("├─────────────────────────────────────────┤\n");
+        printf("│ Sequence:  %8u                     │\n", dummy.sequence);
+        printf("│ Size:      %8zu bytes               │\n", dummy.size);
+        printf("│ Timestamp: %llu                         │\n", dummy.timestamp);
+        printf("└─────────────────────────────────────────┘\n\n");
         rpi_camera_release_frame(&dummy);
     }
 }

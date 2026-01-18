@@ -179,6 +179,9 @@ target_link_libraries(test_wrapper_formats PRIVATE
   rpi_camera_wrapper
   Threads::Threads
 )
+target_sources(test_wrapper_formats PRIVATE
+  ${UTILS_SOURCES}
+)
 
 # Test 3: Control tests
 add_executable(test_wrapper_controls
@@ -299,11 +302,9 @@ message(STATUS "")
 # ============================================================================
 # Build:
 #   export OE_CMAKE_TOOLCHAIN_FILE=~/workspace/4.SDK/sysroots/x86_64-pokysdk-linux/usr/share/cmake/OEToolchainConfig.cmake
+#   export SDKTARGETSYSROOT=~/workspace/4.SDK/sysroots/aarch64-poky-linux
 #   mkdir build && cd build
-#   cmake -DCMAKE_TOOLCHAIN_FILE=$OE_CMAKE_TOOLCHAIN_FILE \
-#   -DCMAKE_CXX_FLAGS="--sysroot=$SDKTARGETSYSROOT -I$SDKTARGETSYSROOT/usr/include/c++/13 -I$SDKTARGETSYSROOT/usr/include/c++/13/aarch64-poky-linux" \
-#   -DCMAKE_C_FLAGS="--sysroot=$SDKTARGETSYSROOT" \
-#   ..
+#   cmake -DCMAKE_TOOLCHAIN_FILE=$OE_CMAKE_TOOLCHAIN_FILE -DCMAKE_CXX_FLAGS="--sysroot=$SDKTARGETSYSROOT -I$SDKTARGETSYSROOT/usr/include/c++/13 -I$SDKTARGETSYSROOT/usr/include/c++/13/aarch64-poky-linux"  -DCMAKE_C_FLAGS="--sysroot=$SDKTARGETSYSROOT" ..
 #   make -j$(nproc)
 #
 # Run tests on target (Pi4):

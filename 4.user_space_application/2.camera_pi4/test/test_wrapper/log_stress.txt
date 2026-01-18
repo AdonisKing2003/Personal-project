@@ -1,0 +1,125 @@
+3. FPS ~13 có hợp lý không?
+Phân tích nhanh:
+
+640×480 YUV420
+
+libcamera + userspace copy
+
+wrapper + queue depth = 4
+
+test polling (try_get_frame)
+
+Có debug log → làm chậm
+
+👉 ~13 FPS là hợp lý
+
+Nếu bạn:
+
+tăng queue depth
+
+tắt debug
+
+dùng callback + worker thread
+
+→ dễ lên 20–30 FPS
+
+4. Total data ~170 MB có khớp không?
+
+Tính thử:
+
+640×480 YUV420 = 460,800 bytes ≈ 0.44 MB / frame
+
+388 frames × 0.44 MB ≈ 170.7 MB
+
+
+👉 KHỚP 100%
+
+🔥 Điều này chứng minh:
+
+frame.size đúng
+
+Không double count
+
+Không leak buffer
+
+5. Memory growth ~1.3 MB – QUÁ TỐT
+Memory growth: 1296 KB
+
+
+👉 Với long-running test 30s:
+
+libcamera
+
+allocator
+
+pipeline warm-up
+
+internal cache
+
+➡️ < 2 MB growth = hoàn toàn chấp nhận được
+
+Nếu là leak:
+
+sẽ tăng đều theo thời gian
+
+test rapid format change đã bắt được
+
+6. Vì sao ru_maxrss vẫn tăng dù không leak?
+
+Câu hỏi phỏng vấn rất hay 👇
+
+Trả lời:
+
+ru_maxrss = peak RSS
+
+libcamera + allocator:
+
+mmap buffer
+
+allocate once
+
+giữ lại cho reuse
+
+RSS không giảm, nhưng không tăng tiếp
+
+👉 Không phải leak, mà là cache/pool
+
+7. Đánh giá tổng thể test này
+Tiêu chí	Đánh giá
+FPS ổn định	✅
+Data khớp	✅
+Memory growth thấp	✅
+Cancel request đúng lifecycle	✅
+Không crash	✅
+
+🔥 Test này PASS rất thuyết phục
+
+
+=========================
+==========================
+=========================
+
+
+4. VÌ SAO SENSOR LÀ RAW NHƯNG APP NHẬN YUYV?
+
+👉 Đây là pipeline chuẩn của Raspberry Pi + libcamera:
+
+Sensor (RAW Bayer)
+   ↓
+Unicam (CSI receiver)
+   ↓
+ISP (demosaic, color convert)
+   ↓
+App stream (YUYV)
+
+
+🔥 Hoàn toàn đúng thiết kế
+
+5. Câu hỏi phỏng vấn rất hay từ log này
+❓ “Anh request YUYV nhưng sensor là RAW, có mâu thuẫn không?”
+
+👉 Trả lời chuẩn:
+
+Không. Sensor luôn xuất RAW Bayer. libcamera cấu hình ISP để demosaic và convert sang YUYV trước khi đưa frame cho application.
+
+🔥 Câu trả lời này ăn điểm rất cao

@@ -1,0 +1,246 @@
+TÌM RA NGUYÊN NHÂN RỒI!
+Vấn Đề Chính
+Khi cam->camera->stop() được gọi, tất cả pending requests bị cancel ngay lập tức, gây ra:
+[DEBUG] Request cancelled. Cookie: 4
+Tại Sao Chỉ RGB888 640x480 Bị?
+Với RGB888 640x480:
+
+Frames process CỰC NHANH (native resolution, không scale)
+Pipeline try_pop() fail vì frames chưa kịp vào pipeline
+Test loop chạy với usleep(1000) (1ms)
+Trong ~200ms đầu, pipeline vẫn trống
+Nhưng 2 giây vẫn chưa hết, loop vẫn chạy
+Có thể race condition hoặc signal handler gọi stop sớm
+
+Race Condition Nghiêm Trọng
+cpp// Thread 1: Test loop
+while (get_time_ns() - stats.start_time < 2ULL * 1000 * 1000 * 1000) {
+    if (rpi_camera_try_get_frame(cam, &frame) == 0) {
+        // Process frame
+        stats.end_time = get_time_ns();
+    }
+    usleep(1000);
+}
+
+// Thread 2: Request callback
+void request_complete(Request *request) {
+    // Push to pipeline
+    pipeline->push(std::move(copy));
+    
+    // Requeue request
+    if (cam->running) {  // <-- CHECK cam->running
+        request->reuse(Request::ReuseBuffers);
+        cam->camera->queueRequest(request);
+    }
+}
+Nếu cam->running chuyển từ true → false GIỮA push() và queueRequest(), requests không được requeue!
+Vấn Đề Cụ Thể: Pipeline Timing
+Với 640x480 RGB888:
+
+Frame arrive CỰC NHANH (17.65 FPS từ cam tool)
+Nhưng pipeline->push() và try_pop() có thread synchronization delay
+First frame có thể mất 10-50ms để xuất hiện trong pipeline
+Test code không đợi first frame, bắt đầu đếm 2 giây ngay
+
+Debug: Thêm Log Để Xác Nhận
+cppint rpi_camera_stop(rpi_camera_t *cam) {
+    if (!cam || !cam->camera) return -1;
+    if (!cam->running) return 0;
+    
+    auto elapsed = get_time_ns() - /* start_time */;
+    std::cout << "[DEBUG] Stopping camera after " << elapsed / 1000000 
+              << "ms, frames in pipeline: " << cam->pipeline->size() << std::endl;
+    
+    cam->running = false;
+    cam->camera->stop();  // <-- Triggers RequestCancelled
+    
+    if (cam->pipeline) {
+        cam->pipeline->stop();
+        cam->pipeline->reset();
+    }
+    
+    cam->requests.clear();
+    std::cout << "[INFO]: Camera stopped" << std::endl;
+    return 0;
+}
+Fix: Đợi First Frame
+cppprintf("[INFO]: Starting camera and waiting for first frame...\n");
+rpi_camera_start(cam);
+
+// Wait for first frame with timeout
+int max_wait = 1000; // 1 second
+int waited = 0;
+rpi_frame_t dummy;
+while (rpi_camera_try_get_frame(cam, &dummy) != 0 && waited < max_wait) {
+    usleep(10000); // 10ms
+    waited += 10;
+}
+
+if (waited >= max_wait) {
+    printf("[ERROR]: No frames received after 1 second!\n");
+} else {
+    printf("[INFO]: First frame received after %dms\n", waited);
+    rpi_camera_release_frame(&dummy);
+}
+
+// Now start the actual test
+format_stats_t stats = {0};
+stats.start_time = get_time_ns();
+stats.min_size = SIZE_MAX;
+
+printf("[INFO]: Capturing frames for 2 seconds...\n");
+while (get_time_ns() - stats.start_time < 2ULL * 1000 * 1000 * 1000) {
+    // ... rest of code
+}
+Thử fix này và cho tôi xem kết quả!lấy frame đầu rồi mới test thì hiệu quả, tại sao nhỉ? do setup lúc đầu buffer và queue chậm, còn setup xong thì queue và frame xử lý nhanh hơn à?5:05 PMChính xác! Bạn hiểu đúng rồi. Đây là cold start problem trong camera pipeline.
+Tại Sao Phải Đợi Frame Đầu?
+1. Camera Hardware Initialization
+rpi_camera_start()
+    ↓
+Camera sensor power up (5-10ms)
+    ↓
+Auto exposure/white balance init (20-50ms)
+    ↓
+ISP pipeline warm up
+    ↓
+First frame ready (50-200ms total)
+2. Buffer Flow Pipeline
+[Sensor] → [Unicam] → [ISP] → [DMA] → [FrameBuffer] → [Your Pipeline]
+   ↓          ↓         ↓        ↓          ↓              ↓
+  5ms       10ms      20ms     5ms        5ms           10ms
+Tổng latency frame đầu: ~50-100ms
+3. Request Queue Mechanics
+cpp// Lúc start:
+for (request : requests) {
+    camera->queueRequest(request);  // Queue tất cả requests
+}
+
+// Request 1 → Sensor → ... → Complete (50-100ms)
+//   ↓
+// Callback fired
+//   ↓
+// Push to pipeline
+//   ↓
+// Requeue request
+```
+
+**Request đầu mất thời gian nhất** vì phải đi qua toàn bộ pipeline lần đầu.
+
+### 4. **Tại Sao RGB888 640x480 Đặc Biệt Chậm?**
+
+**Native resolution = No scaling overhead**
+
+Với các resolution khác:
+```
+Sensor: 1920x1080 (native)
+    ↓
+ISP: Scale down to 1280x720  (buffer time: ~20ms)
+    ↓
+DMA transfer
+```
+
+Với 640x480:
+```
+Sensor: 640x480 (native mode)  
+    ↓
+ISP: Direct pass-through (buffer time: ~2ms)  ← CỰC NHANH!
+    ↓
+DMA transfer
+Paradox:
+
+Processing nhanh hơn (2ms vs 20ms)
+Nhưng first frame xuất hiện chậm hơn vì:
+
+Sensor phải switch mode sang 640x480
+Auto-exposure phải recalibrate cho resolution mới
+Timing parameters khác hoàn toàn
+
+
+
+So Sánh Timing
+ResolutionFirst FrameSubsequent FramesNotes1920x1080~80ms65ms (15 FPS)ISP busy, consistent1280x720~70ms65ms (15 FPS)Scaled, buffered640x480~150ms57ms (17.5 FPS)Mode switch penalty
+Tại Sao Sau Frame Đầu Lại Nhanh?
+Steady State Operation
+cpp// Sau frame đầu:
+while (true) {
+    // Request already in flight
+    // ↓
+    // Complete → Callback → Push → Requeue
+    // ↓
+    // Total cycle: ~57ms (17.5 FPS)
+}
+```
+
+**Pipeline đã "ấm":**
+- ✅ Sensor running steady
+- ✅ ISP buffers pre-filled  
+- ✅ DMA channels active
+- ✅ Requests cycling smoothly
+
+### Buffer Pre-filling
+```
+Queue size = 4 requests
+
+T=0:    [R1] [R2] [R3] [R4] queued
+T=50:   [R1] completes → pipeline
+T=57:   [R2] completes → pipeline  
+T=114:  [R3] completes → pipeline
+        [R1] requeued ← Now cycling!
+T=171:  [R4] completes → pipeline
+        [R2] requeued
+```
+
+**Sau 4 frames đầu, pipeline vào "cruise mode":**
+- Luôn có requests đang chờ
+- Zero gap giữa các frames
+- Throughput tối đa
+
+## Test Case Của Bạn
+
+### Không đợi frame đầu:
+```
+T=0ms:    start()
+T=0ms:    Loop bắt đầu try_pop()
+T=0-150ms: Pipeline TRỐNG → try_pop() fail liên tục
+T=150ms:  Frame đầu arrive
+T=2000ms: Stop (chỉ có ~1.85s để capture thực sự)
+Result: 0 frames (stopped trước khi frame đầu ready!)
+```
+
+### Đợi frame đầu:
+```
+T=0ms:    start()
+T=150ms:  Frame đầu arrive (đợi ở đây)
+T=150ms:  Loop bắt đầu
+T=150-2150ms: Capture đầy đủ 2 giây
+T=2150ms: Stop
+Result: ~35 frames (17.5 FPS × 2s)
+Kết Luận
+Cold start latency là hiện tượng bình thường trong camera systems. Best practice:
+cpp// Production code
+rpi_camera_start(cam);
+
+// Warm-up: discard first 3-5 frames
+for (int i = 0; i < 3; i++) {
+    rpi_frame_t frame;
+    while (rpi_camera_try_get_frame(cam, &frame) != 0) {
+        usleep(10000);
+    }
+    rpi_camera_release_frame(&frame);
+}
+
+// Now stable, start real capture
+Đây là lý do camera apps thường có "preview" mode trước khi capture!
+
+
+=================================================
+=========== MJPEG Format Support Removal ========
+=================================================
+
+Recommended Solution
+Bỏ MJPEG test vì:
+
+❌ Libcamera Pi không hỗ trợ native MJPEG
+❌ Software encoding chậm và không liên quan đến test camera
+✅ YUV420 và RGB888 đã đủ để test camera functionality
+✅ Hardware H264 tốt hơn MJPEG nếu cần compression

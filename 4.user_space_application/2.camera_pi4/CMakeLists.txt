@@ -105,6 +105,10 @@ set(APP_SOURCES
 # ============================================================================
 # Test sources
 # ============================================================================
+set(TEST_CAM_V4L2
+  ${PROJECT_SOURCE_DIR}/test/test_camera/test_camera.c
+)
+
 set(TEST_CAM_SOURCES
   ${PROJECT_SOURCE_DIR}/test/test_camera/test_camera_with_libcamera.c
 )
@@ -139,6 +143,13 @@ set(UTILS_SOURCES
 # Build executable from core and drivers
 add_executable(camera_test
   ${TEST_CAM_SOURCES}
+  ${CORE_SOURCES}
+  ${DRIVER_SOURCES}
+  ${UTILS_SOURCES}
+)
+
+add_executable(camera_test_v4l2
+  ${TEST_CAM_V4L2}
   ${CORE_SOURCES}
   ${DRIVER_SOURCES}
   ${UTILS_SOURCES}

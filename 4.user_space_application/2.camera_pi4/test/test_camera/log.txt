@@ -1,0 +1,63 @@
+root@raspberrypi4-64:~/workspace# ./camera_test_v4l2 
+Camera device opened successfully
+[DEBUG]: Current format: YUYV
+Camera format set successfully: 640x480
+[DEBUG]: Driver format: YUYV
+[DEBUG]: Field: 1
+[DEBUG]: Field enum value = 1
+[DEBUG]: Field = NONE
+Requested 4 buffers successfully
+All buffers queued successfully
+[DEBUG]: Buffers requested: 4
+[DEBUG]: Buffers queued: 4
+[DEBUG]: Driver: unicam
+[DEBUG]: Card: unicam
+[DEBUG]: Capabilities: 0xa5a00001
+[DEBUG]: Verified format before streaming:
+  Width: 640
+  Height: 480
+  Pixelformat: YUYV
+  Bytesperline: 1280
+  Sizeimage: 614400
+[ERROR]: STREAMON: Invalid argument
+[ERROR]: errno = 22 (Invalid argument)
+[ERROR]: This usually means:
+  - Wrong video device (try /dev/video1, /dev/video2, etc.)
+  - Format not fully supported
+  - Device doesn't support MMAP streaming
+[ERROR]: Camera initialization failed
+root@raspberrypi4-64:~/workspace# 
+
+
+
+root@raspberrypi4-64:~/workspace# ./camera_test_v4l2 
+Camera device opened successfully
+[DEBUG]: Current format: pGAA
+Camera format set successfully: 640x480
+[DEBUG]: Driver format: pGAA
+[DEBUG]: Field: 1
+[DEBUG]: Field enum value = 1
+[DEBUG]: Field = NONE
+Requested 4 buffers successfully
+All buffers queued successfully
+[DEBUG]: Buffers requested: 4
+[DEBUG]: Buffers queued: 4
+[DEBUG]: Driver: unicam
+[DEBUG]: Card: unicam
+[DEBUG]: Capabilities: 0xa5a00001
+[DEBUG]: Verified format before streaming:
+  Width: 640
+  Height: 480
+  Pixelformat: pGAA
+  Bytesperline: 800
+  Sizeimage: 384000
+Camera streaming started
+Camera initialized successfully
+Starting camera capture...
+Buffer dequeued successfully
+Captured frame in buffer index: 0
+Captured frame size: 384000 bytes
+root@raspberrypi4-64:~/workspace# 
+
+
+sau test basic

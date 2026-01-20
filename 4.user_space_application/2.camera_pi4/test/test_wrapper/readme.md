@@ -416,3 +416,13 @@ sudo usermod -a -G video $USER
 ```bash
 sudo apt-get install libcamera-dev
 ```
+
+1. Bảng so sánh tổng quan
+
+| Format | Loại | Nén | Kích thước (640x480) | Use case chính |
+| ---    | ---  | --- | ---                  | ---            |
+| RAW | Sensor data | Không | ~307 KB (10-bit) | ISP input, professional |
+| RGB | Color space | Không | ~922 KB (8-bit) | Display, processing |
+| YUV | Color space | Không | ~461 KB (4:2:0) | Video codec, broadcasting |
+| PPM | File format | Không | ~922 KB + header | Debug, interchange |
+| JPEG | File format | Có (lossy) | ~50-150 KB | Storage, web, photos |

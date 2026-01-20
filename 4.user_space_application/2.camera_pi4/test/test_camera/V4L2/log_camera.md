@@ -577,3 +577,129 @@ cách tự viết media-ctl trong C
 vì sao CSI camera KHÔNG bao giờ plug-and-play như USB
 
 Bạn đang chạm đúng core kiến trúc Linux camera rồi đó 🔥
+
+
+Hardware Layer:
+┌─────────────┐
+│ OV5647      │ Camera Sensor
+│ (CSI-2)     │
+└──────┬──────┘
+       │ MIPI CSI-2 bus
+       ↓
+┌─────────────┐
+│ Unicam      │ CSI-2 Receiver (captures raw Bayer)
+│ /dev/video0 │ 
+└──────┬──────┘
+       │ Raw Bayer data (SGBRG10)
+       ↓
+┌─────────────┐
+│ ISP         │ Image Signal Processor
+│ /dev/video13│ (debayer, scale, format convert)
+└──────┬──────┘
+       │ Processed YUV/RGB
+       ↓
+┌─────────────┐
+│ Your App    │
+└─────────────┘
+
+Media Controller:
+/dev/media0 - Controls the pipeline connections
+
+--------------------------------
+
+Media controller Ảnh hưởng đến V4L2:
+1. Mở rộng khả năng của V4L2
+V4L2 truyền thống quản lý từng thiết bị video độc lập. Media Controller cho phép:
+
+Quản lý nhiều thiết bị liên kết với nhau
+Cấu hình pipeline xử lý media phức tạp
+Điều khiển từng bước trong chuỗi xử lý
+
+2. Topology Discovery
+Ứng dụng có thể:
+
+Khám phá cấu trúc phần cứng media
+Hiểu được luồng dữ liệu giữa các thành phần
+Cấu hình động các kết nối
+
+3. Fine-grained Control
+Thay vì chỉ điều khiển thiết bị cuối, bạn có thể:
+
+Cấu hình từng entity riêng lẻ (sensor format, ISP settings)
+Thiết lập routing giữa các entities
+Tối ưu pipeline theo nhu cầu cụ thể
+
+4. Ví dụ thực tế
+Một camera pipeline điển hình:
+[Camera Sensor] → [ISP] → [Format Converter] → [/dev/video0]
+
+Với Media Controller, bạn có thể:
+
+Cấu hình resolution/format tại sensor
+Điều chỉnh các thông số ISP (white balance, exposure)
+Chọn format đầu ra phù hợp
+Tất cả thông qua /dev/media0 interface
+
+--------------------------
+
+Phân chia trách nhiệm:
+V4L2 truyền thống (simple pipeline)
+Với các webcam USB đơn giản, V4L2 driver "gói gọn" mọi thứ:
+
+Driver tự động điều chỉnh sensor
+Tự xử lý ISP (nếu có)
+Ứng dụng chỉ cần mở /dev/video0 và đọc dữ liệu
+
+Người dùng không cần biết gì về hardware bên trong.
+V4L2 + Media Controller (complex pipeline)
+Với SoC phức tạp (như Raspberry Pi), các thành phần được tách riêng:
+[Camera Sensor] ←V4L2 subdev→ [Unicam] ←V4L2 subdev→ [ISP] → [/dev/video0]
+     ↑                            ↑                    ↑
+  I2C control              CSI-2 receiver         Image processing
+
+Sensor driver: Điều khiển camera qua I2C (exposure, gain, format)
+Unicam: CSI-2 receiver, nhận raw data từ sensor
+ISP driver: Xử lý ảnh (debayer, white balance, noise reduction)
+
+Unicam là gì?
+Unicam (Universal Camera Interface) là CSI-2 receiver trên Raspberry Pi. Vai trò của nó:
+
+Nhận dữ liệu raw từ camera sensor qua CSI-2 interface
+Không xử lý ảnh - chỉ đóng vai trò cầu nối
+Chuyển data đến ISP hoặc output trực tiếp (cho raw capture)
+
+Unicam KHÔNG phải ISP!
+Tại sao cần Media Controller ở đây?
+Vì pipeline phức tạp nên cần cấu hình:
+bash# Ví dụ với media-ctl
+media-ctl -d /dev/media0 --set-v4l2 '"imx219 10-0010":0[fmt:SRGGB10_1X10/1920x1080]'
+media-ctl -d /dev/media0 --set-v4l2 '"unicam":0[fmt:SRGGB10_1X10/1920x1080]'
+Media Controller cho phép:
+
+Thiết lập format tại sensor (raw Bayer)
+Cấu hình Unicam nhận đúng format
+Routing data đến ISP hoặc output raw
+
+Vậy ai điều chỉnh ISP?
+Cả hai đều có vai trò:
+
+Media Controller: Thiết lập topology và routing
+
+Kết nối sensor → unicam → ISP
+Thiết lập format tại mỗi điểm
+
+
+V4L2 controls: Điều chỉnh thông số ISP runtime
+
+Brightness, contrast, saturation
+Auto white balance, auto exposure
+Thông qua V4L2 subdev controls
+
+
+
+Tóm lại:
+
+Unicam = CSI-2 receiver (nhận data từ sensor)
+ISP = Image processor riêng biệt
+Media Controller = Quản lý kết nối giữa chúng
+V4L2 = Interface điều khiển từng thành phần

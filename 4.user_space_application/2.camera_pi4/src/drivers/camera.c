@@ -37,18 +37,108 @@ static int ioctl_with_retry(int fd, int request, void *arg) {
     return r;
 }
 
+/* Helper: Setup media controller pipeline */
+int setup_media_pipeline(const char *sensor_name) {
+    char cmd[512];
+
+    printf("[V4L2]: Setting up media pipeline...\n");
+
+    /* Reset */
+    system("media-ctl -d /dev/media0 --reset 2>/dev/null");
+
+    /* Set formats */
+    snprintf(cmd, sizeof(cmd),
+        "media-ctl -d /dev/media0 --set-v4l2 "
+        "'%s':0[fmt:SBGGR10_1X10/640x480] 2>/dev/null", 
+        sensor_name);
+    system(cmd);
+
+    system("media-ctl -d /dev/media0 --set-v4l2 "
+            "'unicam':0[fmt:SBGGR10_1X10/640x480] 2>/dev/null");
+    system("media-ctl -d /dev/media0 --set-v4l2 "
+           "'unicam':1[fmt:SBGGR10_1X10/640x480] 2>/dev/null");
+
+    /* Enable links */
+    snprintf(cmd, sizeof(cmd),
+        "media-ctl -d /dev/media0 -l "
+        "'%s':0 -> 'unicam':0 [1] 2>/dev/null",
+        sensor_name);
+    system(cmd);
+    
+    system("media-ctl -d /dev/media0 -l "
+           "'unicam':1 -> 'unicam-image':0 [1] 2>/dev/null");
+    
+    printf("[V4L2]: Pipeline configured\n");
+    return 0;
+}
+
+/* Helper: Detect camera sensor */
+int detect_camera_sensor(char *sensor_name, size_t max_len) {
+    FILE *fp = popen("media-ctl -d /dev/media0 -p 2>/dev/null | "
+                     "grep -o 'ov5647\\|imx219\\|imx477\\|imx708' | "
+                     "head -n1", "r");
+    if(!fp) return -1;
+
+    if(fgets(sensor_name, max_len, fp) == NULL) {
+        pclose(fp);
+        return -1;
+    }
+
+    /* remove newline */
+    sensor_name[strcspn(sensor_name, "\n")] == 0;
+    pclose(fp);
+
+    printf("[V4L2]: Detected sensor: %s\n", sensor_name);
+    return 0;
+}
+
 int camera_init(st_camera *camera, const char *device_path) {
     memset(camera, 0, sizeof(st_camera));
 
-    // Open camera device
+    /* STEP 1: Detect and setup media pipeline */
+    char sensor_name[64];
+    if(detect_camera_sensor(sensor_name, sizeof(sensor_name)) < 0) {
+        fprintf(stderr, "[EROR]: No camera sensor detected\n");
+        fprintf(stderr, "Make sure camera is connected and enabled in /boot/config.txt\n");
+        return -1;
+    }
+
+    if(setup_media_pipeline(sensor_name) < 0) {
+        fprintf(stderr, "[ERROR]: Failed to setup media pipeline\n");
+    }
+
+    /* Give kernel time to setup */
+    usleep(100000); /* 100ms */
+
+    // STEP 2: Open camera device
     camera->fd = open(device_path, O_RDWR);
     if (camera->fd < 0) {
         perror("[ERROR]: Failed to open camera device");
+        fprintf(stderr, "Tried to open: %s\n", device_path);
+        fprintf(stderr, "Run 'ls -l /dev/video*' to see available devices\n");
         return -1;
     }
     printf("Camera device opened successfully\n");
 
-    // Query current format first
+    // STEP 3: Query capabilities
+    struct v4l2_capability cap;
+    if(ioctl(camera->fd, VIDIOC_QUERYCAP, &cap) == -1) {
+        perror("[ERROR]: VIDIOC_QUERYCAP");
+        close(camera->fd);
+        return -1;
+    }
+    printf("[V4L2]: Driver: %s\n", cap.driver);
+    printf("[V4L2]: Card: %s\n", cap.card);
+    printf("[V4L2]: Bus: %s\n", cap.bus_info);
+    printf("[V4L2]: Capabilities: 0x%08x\n", cap.capabilities);
+
+    if(!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+        fprintf(stderr, "[ERROR]: Does not support streaming I/O\n");
+        close(camera->fd);
+        return -1;
+    }
+
+    /* STEP 4: Get current format */
     memset(&camera->fmt, 0, sizeof(struct v4l2_format));
     camera->fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     
@@ -58,17 +148,21 @@ int camera_init(st_camera *camera, const char *device_path) {
         return -1;
     }
     
-    printf("[DEBUG]: Current format: %c%c%c%c\n",
-        camera->fmt.fmt.pix.pixelformat & 0xFF,
-        (camera->fmt.fmt.pix.pixelformat >> 8) & 0xFF,
-        (camera->fmt.fmt.pix.pixelformat >> 16) & 0xFF,
-        (camera->fmt.fmt.pix.pixelformat >> 24) & 0xFF);
+    printf("[V4L2]: Current format:\n");
+    printf("        Width: %u\n", camera->fmt.fmt.pix.width);
+    printf("        Height: %u\n", camera->fmt.fmt.pix.height);
+    printf("        Pixel Format: %.4s\n", 
+           (char*)&camera->fmt.fmt.pix.pixelformat);
+    printf("        Bytes per line: %u\n", camera->fmt.fmt.pix.bytesperline);
+    printf("        Size image: %u\n", camera->fmt.fmt.pix.sizeimage);
+
+    /* STEP 5: Set desired format */
 
     // Set desired resolution but keep the pixel format
     camera->fmt.fmt.pix.width = CAMERA_RESOLUTION_WIDTH;
     camera->fmt.fmt.pix.height = CAMERA_RESOLUTION_HEIGHT;
     camera->fmt.fmt.pix.field = V4L2_FIELD_NONE;
-    // camera->fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR10;
+    camera->fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR10;
     // Don't change pixelformat - use what the driver provides
 
     if (ioctl_with_retry(camera->fd, VIDIOC_S_FMT, &camera->fmt) < 0) {

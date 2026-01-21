@@ -37,46 +37,64 @@ static int ioctl_with_retry(int fd, int request, void *arg) {
     return r;
 }
 
+// Hàm tìm đúng /dev/mediaX chứa sensor
+int find_media_device(const char *pattern, char *out_media, char *out_entity) {
+    char cmd[256];
+    char line[512];
+    int found = 0;
+
+    // Quét qua các media device hiện có
+    for (int i = 0; i < 10; i++) {
+        sprintf(cmd, "media-ctl -d /dev/media%d -p 2>/dev/null", i);
+        FILE *fp = popen(cmd, "r");
+        if (!fp) continue;
+
+        while (fgets(line, sizeof(line), fp)) {
+            // Tìm dòng chứa sensor (ví dụ: ov5647)
+            if (strstr(line, "entity") && strstr(line, pattern)) {
+                // Parse lấy tên đầy đủ nằm giữa "entity X: " và " ("
+                char *start = strchr(line, ':');
+                if (start) {
+                    start += 2; // Bỏ qua ": "
+                    char *end = strchr(start, '(');
+                    if (end) {
+                        strncpy(out_entity, start, end - start - 1);
+                        out_entity[end - start - 1] = '\0';
+                        sprintf(out_media, "/dev/media%d", i);
+                        found = 1;
+                        break;
+                    }
+                }
+            }
+        }
+        pclose(fp);
+        if (found) return 0;
+    }
+    return -1;
+}
+
 /* Helper: Setup media controller pipeline */
-int setup_media_pipeline(const char *sensor_name) {
+int setup_media_pipeline(const char *unused_pattern) {
     char cmd[512];
+    
+    printf("[V4L2]: Pipeline is IMMUTABLE, skipping links. Setting formats...\n");
 
-    printf("[V4L2]: Setting up media pipeline...\n");
-
-    /* Reset */
-    system("media-ctl -d /dev/media0 --reset 2>/dev/null");
-
-    /* Set formats */
-    snprintf(cmd, sizeof(cmd),
-        "media-ctl -d /dev/media0 --set-v4l2 "
-        "'%s':0[fmt:SBGGR10_1X10/640x480] 2>/dev/null", 
-        sensor_name);
+    /* 1. Set format cho Sensor (Entity 1) */
+    /* Lưu ý: Dùng đúng định dạng SGBRG10 từ log media-ctl của bạn */
+    snprintf(cmd, sizeof(cmd), 
+        "media-ctl -d /dev/media4 --set-v4l2 '\"ov5647 10-0036\":0[fmt:SGBRG10_1X10/640x480]'");
     system(cmd);
 
-    system("media-ctl -d /dev/media0 --set-v4l2 "
-            "'unicam':0[fmt:SBGGR10_1X10/640x480] 2>/dev/null");
-    system("media-ctl -d /dev/media0 --set-v4l2 "
-           "'unicam':1[fmt:SBGGR10_1X10/640x480] 2>/dev/null");
-
-    /* Enable links */
-    snprintf(cmd, sizeof(cmd),
-        "media-ctl -d /dev/media0 -l "
-        "'%s':0 -> 'unicam':0 [1] 2>/dev/null",
-        sensor_name);
-    system(cmd);
-    
-    system("media-ctl -d /dev/media0 -l "
-           "'unicam':1 -> 'unicam-image':0 [1] 2>/dev/null");
-    
-    printf("[V4L2]: Pipeline configured\n");
+    /* 2. Kiểm tra node video */
+    printf("[V4L2]: Pipeline configured. Use /dev/video0 for capture.\n");
     return 0;
 }
 
 /* Helper: Detect camera sensor */
 int detect_camera_sensor(char *sensor_name, size_t max_len) {
-    FILE *fp = popen("media-ctl -d /dev/media0 -p 2>/dev/null | "
-                     "grep -o 'ov5647\\|imx219\\|imx477\\|imx708' | "
-                     "head -n1", "r");
+    FILE *fp = popen("for d in /dev/media*; do "
+                 "media-ctl -d $d -p 2>/dev/null | grep -o 'ov5647\\|imx219\\|imx477\\|imx708' && break; "
+                 "done | head -n1", "r");
     if(!fp) return -1;
 
     if(fgets(sensor_name, max_len, fp) == NULL) {
@@ -85,10 +103,10 @@ int detect_camera_sensor(char *sensor_name, size_t max_len) {
     }
 
     /* remove newline */
-    sensor_name[strcspn(sensor_name, "\n")] == 0;
+    sensor_name[strcspn(sensor_name, "\n")] = 0;
     pclose(fp);
 
-    printf("[V4L2]: Detected sensor: %s\n", sensor_name);
+    printf("[V4L2]: Detected sensor: %s !\n", sensor_name);
     return 0;
 }
 
@@ -162,8 +180,7 @@ int camera_init(st_camera *camera, const char *device_path) {
     camera->fmt.fmt.pix.width = CAMERA_RESOLUTION_WIDTH;
     camera->fmt.fmt.pix.height = CAMERA_RESOLUTION_HEIGHT;
     camera->fmt.fmt.pix.field = V4L2_FIELD_NONE;
-    camera->fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR10;
-    // Don't change pixelformat - use what the driver provides
+    camera->fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_SGBRG10; // Tương ứng với 'GB10'
 
     if (ioctl_with_retry(camera->fd, VIDIOC_S_FMT, &camera->fmt) < 0) {
         perror("[ERROR]: Failed to set camera format");
@@ -246,7 +263,7 @@ int camera_init(st_camera *camera, const char *device_path) {
 
     printf("[DEBUG]: Buffers requested: %u\n", camera->buf_req.count);
     printf("[DEBUG]: Buffers queued: %u\n", camera->buffer_count);
-    struct v4l2_capability cap;
+
     if (ioctl(camera->fd, VIDIOC_QUERYCAP, &cap) == -1) {
         perror("[ERROR]: Querying Capabilities");
         return -1;

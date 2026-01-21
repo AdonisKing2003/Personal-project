@@ -34,7 +34,8 @@ void isp_free_image(st_rgb_image *img);
 void isp_black_level_correction(uint16_t *data, uint32_t size, uint16_t black_level);
 void isp_debayer_bilinear(const uint16_t *bayer, uint16_t *rgb,
                             uint32_t width, uint32_t height);
-void isp_white_balance(uint16_t *rgb, uint32_t size, float gamma);
-void isp_sharpen(uint16_t *rgb, uint32_t width, uint32_t height, float amound);
+void isp_white_balance(uint16_t *rgb, uint32_t width, uint32_t height,
+                       float r_gain, float g_gain, float b_gain);
+void isp_sharpen(uint16_t *rgb, uint32_t width, uint32_t height, float amount);
 
 #endif /* ISP_H */

@@ -61,3 +61,24 @@ root@raspberrypi4-64:~/workspace#
 
 
 sau test basic
+
+
+----
+
+error: wrong entity name, wrong format for v4l2 
+
+Với cấu trúc code hiện tại của bạn, file bạn nhận được trong buffer frame là Dữ liệu Raw (Bayer), chưa phải là ảnh màu RGB hoàn chỉnh.
+
+Dưới đây là lý do và cách để bạn lưu file đúng định dạng:
+
+1. Bản chất của dữ liệu bạn vừa capture
+Dựa trên các bước debug trước đó:
+
+Sensor (OV5647): Xuất ra định dạng SGBRG10 (Bayer 10-bit).
+
+Pipeline: Nối thẳng từ Sensor vào Unicam mà không qua bộ xử lý ISP của Pi.
+
+Pixelformat: Bạn đã cấu hình thành công với GB10.
+
+Vì vậy, dữ liệu trong frame là Bayer RAW. Mỗi pixel đang chiếm 2 bytes (với 10-bit dữ liệu thực tế). 
+Nếu bạn lưu trực tiếp ra file, nó sẽ là một file .raw mà các trình xem ảnh thông thường (như Photos hay Paint) không mở được.

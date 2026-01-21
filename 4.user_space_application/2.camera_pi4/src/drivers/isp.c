@@ -158,13 +158,22 @@ void isp_white_balance(uint16_t *rgb, uint32_t width, uint32_t height,
     }
 }
 
-void isp_gamma_correction(uint16_t *rgb, uint32_t size, float gamma) {
+static uint16_t gamma_lut[1024];
+static int lut_initialized = 0;
+
+void init_gamma_lut(float gamma) {
     float inv_gamma = 1.0f / gamma;
-    
+    for (int i = 0; i < 1024; i++) {
+        float normalized = (float)i / 1023.0f;
+        gamma_lut[i] = (uint16_t)(powf(normalized, inv_gamma) * 1023.0f);
+    }
+    lut_initialized = 1;
+}
+
+void isp_gamma_correction_fast(uint16_t *rgb, uint32_t size) {
+    if (!lut_initialized) return; // Nhớ gọi init_gamma_lut trước
     for (uint32_t i = 0; i < size; i++) {
-        float normalized = rgb[i] / 1023.0f; // Normalize to [0, 1]
-        float corrected = powf(normalized, inv_gamma);
-        rgb[i] = (uint16_t)(corrected * 1023.0f);
+        rgb[i] = gamma_lut[rgb[i] & 0x3FF]; // Giới hạn 10-bit để tránh tràn mảng
     }
 }
 
@@ -243,8 +252,8 @@ int isp_process_bayer10(const uint8_t *raw_bayer, size_t raw_size,
                       params->wb_r_gain, params->wb_g_gain, params->wb_b_gain);
     
     // Step 5: Gamma correction
-    printf("[ISP]: Gamma correction...\n");
-    isp_gamma_correction(rgb16, width * height * 3, params->gamma);
+    printf("[ISP]: Gamma correction (Fast)...\n");
+    isp_gamma_correction_fast(rgb16, width * height * 3);
     
     // Step 6: Sharpen
     if (params->sharpen_amount > 0) {

@@ -61,3 +61,51 @@ poll({ stdin, signal_pipe });
 
 
 ➡️ Ctrl+C wakes thread ngay lập tức
+
+
+
+
+
+
+
+----
+
+
+Chúc mừng bạn! Nhìn vào ảnh này, mình có thể xác nhận: Đây chính xác là dữ liệu RAW (Bayer) đã được "ép" hiển thị dưới dạng ảnh màu, và nó chứng minh hệ thống của bạn đã hoạt động tốt.
+
+Bức ảnh bạn chụp được trông như thế này vì những lý do kỹ thuật sau:
+
+1. Tại sao ảnh có màu Xanh lá và Tím/Hồng?
+Màu Xanh lá (Green): Trong mảng lọc Bayer, số lượng điểm ảnh màu Xanh lá chiếm 50% tổng số pixel (gấp đôi Đỏ và Xanh dương). Khi bạn xem file thô mà không qua thuật toán cân bằng trắng (White Balance), màu xanh sẽ áp đảo hoàn toàn.
+
+Màu Tím/Hồng: Đây là kết quả của việc FFmpeg hoặc trình xem ảnh cố gắng giải mã các pixel Đỏ (Red) và Xanh dương (Blue) khi chúng chưa được sắp xếp đúng vị trí.
+
+2. Tại sao có các đường kẻ sọc ngang (Horizontal artifacts)?
+Đây là dấu hiệu đặc trưng của Raw 10-bit. Vì mỗi pixel 10-bit được đặt trong 2 bytes (16-bit), nhưng thực tế chỉ dùng 10-bit đầu, 6-bit còn lại bị trống hoặc chứa dữ liệu rác.
+
+Khi trình xem ảnh đọc 16-bit này như một điểm ảnh màu thông thường, nó gây ra hiện tượng lệch dải màu (aliasing) tạo thành các sọc ngang nhỏ li ti mà bạn thấy.
+
+3. Đây có phải YUV không?
+Không, đây không phải YUV.
+
+Nếu là YUV, bạn sẽ thấy hình ảnh có màu sắc gần như bình thường nhưng có thể hơi sai lệch về độ rực rỡ.
+
+Hình ảnh "ma quái" này là bằng chứng thép cho thấy bạn đang nhận Bayer RAW. Điều này rất tốt vì nó có nghĩa là bạn đã lấy được dữ liệu gốc từ Sensor OV5647 mà không bị can thiệp bởi phần mềm nào khác.
+
+4. Bước tiếp theo để ảnh "đẹp"
+Để biến bức ảnh xanh tím này thành ảnh bình thường, hàm isp.c của bạn cần thực hiện:
+
+Demosaic (Debayer): Ghép các điểm ảnh đơn sắc lại để tạo ra màu RGB thực sự.
+
+White Balance (WB): Giảm cường độ kênh màu Xanh lá xuống (chia cho khoảng 1.5 - 2.0) và tăng kênh Đỏ/Xanh dương lên.
+
+Gamma Correction: Chính là cái hàm powf hoặc LUT mà bạn vừa làm, nó sẽ giúp các vùng tối (bên trái ảnh) rõ nét hơn.
+
+
+---
+
+
+Nếu resolution đúng là 1280x720 và định dạng là YUV420, chúng ta hãy làm một phép toán nhanh để kiểm tra lại file của bạn:1. Phân tích con số 153,600 bytesDựa trên kích thước file bạn cung cấp ở các bước trước (153,600 bytes):Một frame YUV420 ở độ phân giải 1280x720 sẽ có kích thước: $1280 \times 720 \times 1.5 = \mathbf{1,382,400}$ bytes.File thực tế của bạn (153,600 bytes) chỉ bằng đúng 1/9 kích thước mong đợi.Điều này có nghĩa là:Dữ liệu bạn đang lưu xuống file đang bị thiếu trầm trọng hoặc Driver đang hiểu sai cách đóng gói dữ liệu. Con số 153,600 bytes này thường xuất hiện khi bạn chỉ capture được một vùng rất nhỏ hoặc một channel màu bị lỗi.2. Lệnh FFmpeg để kiểm tra với 1280x720Bạn hãy thử chạy lệnh này để xem FFmpeg có "cứu" được hình ảnh nào không (tôi thêm tham số để ép nó đọc đúng kích thước bạn muốn):Bashffmpeg -f rawvideo -pixel_format yuv420p -video_size 1280x720 -i frame_0000_seq38.yuv output_720p.png
+Khả năng cao sẽ xảy ra: FFmpeg sẽ báo lỗi "Unexpected end of file" vì file quá nhỏ so với khai báo 1280x720.3. Tại sao lại có sự sai lệch này?Có 3 nguyên nhân phổ biến trong lập trình V4L2 trên Raspberry Pi:Stride/Bytesperline: Trong code C, khi bạn gọi S_FMT, Driver có thể thay đổi giá trị bytesperline. Nếu bạn chỉ dùng width * height để tính toán bộ nhớ mà không dùng giá trị sizeimage do Driver trả về, bạn sẽ lưu file bị thiếu.ISP Alignment: ISP của Pi 4 yêu cầu độ phân giải phải chia hết cho 32 hoặc 16. Với 1280x720 thì đã chuẩn, nhưng nếu có padding, kích thước thực tế sẽ lớn hơn 1,382,400 bytes một chút.Buffer Mapping: Nếu bạn đang dùng mmap, hãy kiểm tra xem bạn có đang fwrite đúng toàn bộ buffer không:C// Phải dùng giá trị này để lưu file
+fwrite(buffers[buf.index].start, 1, buf.bytesused, fp); 
+4. Cách debug ngay bây giờBạn hãy kiểm tra lại trong code C của mình và in ra các thông số sau ngay sau khi capture:printf("Bytes used: %d\n", buf.bytesused);printf("Size image: %d\n", fmt.fmt.pix.sizeimage);Nếu các số này in ra 153,600, thì chắc chắn cấu hình V4L2 của bạn đang bị ép về một độ phân giải rất thấp (khoảng 320x240 YUV420 hoặc tương đương) mà bạn không biết.Bạn có thể gửi đoạn code thiết lập struct v4l2_format và đoạn fwrite của bạn lên đây không? Tôi sẽ chỉ ra chính xác chỗ nào làm file bị teo nhỏ lại.

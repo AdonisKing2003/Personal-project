@@ -90,6 +90,10 @@ set(DRIVER_SOURCES
   ${PROJECT_SOURCE_DIR}/src/drivers/camera.c
 )
 
+add_library(drivers_lib STATIC 
+    ${PROJECT_SOURCE_DIR}/src/drivers/isp.c 
+)
+
 # Core source
 set(CORE_SOURCES
   # ${PROJECT_SOURCE_DIR}/src/core/app.c
@@ -106,15 +110,15 @@ set(APP_SOURCES
 # Test sources
 # ============================================================================
 set(TEST_CAM_V4L2
-  ${PROJECT_SOURCE_DIR}/test/test_camera/test_camera.c
+  ${PROJECT_SOURCE_DIR}/test/test_camera/V4L2/test_camera.c
 )
 
-set(TEST_CAM_SOURCES
-  ${PROJECT_SOURCE_DIR}/test/test_camera/test_camera_with_libcamera.c
+set(TEST_CAM_LIBCAMERA_SOURCES
+  ${PROJECT_SOURCE_DIR}/test/test_camera/libcamera/test_camera_with_libcamera.c
 )
 
 set(TEST_GSTREAMER_SOURCES
-  ${PROJECT_SOURCE_DIR}/test/test_camera/test_gstreamer.c
+  ${PROJECT_SOURCE_DIR}/test/test_camera/GSTREAMER/test_gstreamer.c
 )
 
 # Wrapper tests
@@ -133,6 +137,10 @@ set(TEST_WRAPPER_CONTROLS_SOURCES
 set(TEST_WRAPPER_STRESS_SOURCES
   ${PROJECT_SOURCE_DIR}/test/test_wrapper/test_stress.c
 )
+
+set(TEST_ISP_SOURCES
+  ${PROJECT_SOURCE_DIR}/test/test_camera/V4L2/test_isp.c
+)
 # ============================================================================
 
 # Utils source
@@ -142,7 +150,7 @@ set(UTILS_SOURCES
 
 # Build executable from core and drivers
 add_executable(camera_test
-  ${TEST_CAM_SOURCES}
+  ${TEST_CAM_LIBCAMERA_SOURCES}
   ${CORE_SOURCES}
   ${DRIVER_SOURCES}
   ${UTILS_SOURCES}
@@ -161,6 +169,18 @@ add_executable(gstreamer_test
   ${DRIVER_SOURCES}
   ${UTILS_SOURCES}
 )
+
+add_executable(isp_test
+  ${TEST_ISP_SOURCES}
+  ${CORE_SOURCES}
+  ${DRIVER_SOURCES}
+  ${UTILS_SOURCES}
+)
+
+find_library(MATH_LIBRARY m)
+target_link_libraries(drivers_lib PUBLIC ${MATH_LIBRARY})
+target_link_libraries(isp_test PRIVATE drivers_lib)
+
 
 target_link_libraries(camera_test PRIVATE Threads::Threads)
 

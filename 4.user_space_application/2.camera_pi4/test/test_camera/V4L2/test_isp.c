@@ -9,7 +9,7 @@ void save_ppm(const char *filename, st_rgb_image *img) {
         return;
     }
 
-    fprintf(fp, "P6\n%U %U\n255\n", image->width, img->height);
+    fprintf(fp, "P6\n%U %U\n255\n", img->width, img->height);
     fwrite(img->data, 1, img->width * img->height * 3, fp);
     fclose(fp);
 
@@ -45,10 +45,12 @@ int main(void)
         }
         printf("Captured frame size: %zu bytes\n", size);
         /* Process with ISP */
+        printf("[ISP]: Initializing Gamma LUT (gamma=%.2f)...\n", isp_params.gamma);
+        init_gamma_lut(isp_params.gamma);
         st_rgb_image output;
-        if(isp_process_bayer10(raw_frame, frame_size,
-                                camera.fmt.fmt.pix.width,
-                                camera.fmt.fmt.pix.height,
+        if(isp_process_bayer10(frame, size,
+                                cam.fmt.fmt.pix.width,
+                                cam.fmt.fmt.pix.height,
                                 &output, &isp_params) < 0) 
         {
             fprintf(stderr, "ISP processing failed\n");

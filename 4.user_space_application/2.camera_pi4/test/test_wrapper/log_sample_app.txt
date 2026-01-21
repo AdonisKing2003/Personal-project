@@ -109,3 +109,68 @@ Nếu resolution đúng là 1280x720 và định dạng là YUV420, chúng ta h�
 Khả năng cao sẽ xảy ra: FFmpeg sẽ báo lỗi "Unexpected end of file" vì file quá nhỏ so với khai báo 1280x720.3. Tại sao lại có sự sai lệch này?Có 3 nguyên nhân phổ biến trong lập trình V4L2 trên Raspberry Pi:Stride/Bytesperline: Trong code C, khi bạn gọi S_FMT, Driver có thể thay đổi giá trị bytesperline. Nếu bạn chỉ dùng width * height để tính toán bộ nhớ mà không dùng giá trị sizeimage do Driver trả về, bạn sẽ lưu file bị thiếu.ISP Alignment: ISP của Pi 4 yêu cầu độ phân giải phải chia hết cho 32 hoặc 16. Với 1280x720 thì đã chuẩn, nhưng nếu có padding, kích thước thực tế sẽ lớn hơn 1,382,400 bytes một chút.Buffer Mapping: Nếu bạn đang dùng mmap, hãy kiểm tra xem bạn có đang fwrite đúng toàn bộ buffer không:C// Phải dùng giá trị này để lưu file
 fwrite(buffers[buf.index].start, 1, buf.bytesused, fp); 
 4. Cách debug ngay bây giờBạn hãy kiểm tra lại trong code C của mình và in ra các thông số sau ngay sau khi capture:printf("Bytes used: %d\n", buf.bytesused);printf("Size image: %d\n", fmt.fmt.pix.sizeimage);Nếu các số này in ra 153,600, thì chắc chắn cấu hình V4L2 của bạn đang bị ép về một độ phân giải rất thấp (khoảng 320x240 YUV420 hoặc tương đương) mà bạn không biết.Bạn có thể gửi đoạn code thiết lập struct v4l2_format và đoạn fwrite của bạn lên đây không? Tôi sẽ chỉ ra chính xác chỗ nào làm file bị teo nhỏ lại.
+
+
+2. Tại sao ảnh RAW của bạn lại bị nhầm thành yuv420p?Đây là điểm mấu chốt gây ra cái ảnh "ma quái" của bạn:Dung lượng: Một ảnh YUV420 chuẩn có dung lượng bằng $1.5 \times \text{Width} \times \text{Height}$ bytes.Dữ liệu RAW 10-bit: Nếu bạn capture ở chế độ Packed (đóng gói), dung lượng của nó là $1.25 \times \text{Width} \times \text{Height}$ bytes.Sự nhầm lẫn: Hai con số này khá gần nhau (1.5 và 1.25). Nếu driver hoặc phần mềm xem ảnh (như YUView) thấy kích thước file không khớp hoàn toàn, nó thường "đoán đại" và cố ép dữ liệu RAW vào cấu trúc 3 vùng (Y, U, V) của yuv420p.
+
+
+-----------
+
+adonisking@adonisking-Nitro-AN515-55:~/workspace/1.raspi-4/Personal-project/4.user_space_application/2.camera_pi4/build/captured_frames$ ls -lah
+
+total 4.6M
+
+drwxr-xr-x 2 adonisking adonisking 4.0K Jan 21 23:46 .
+
+drwxrwxr-x 4 adonisking adonisking 4.0K Jan 21 23:37 ..
+
+-rw-r--r-- 1 adonisking adonisking 1.4M Jan 21 23:37 frame_0000_seq38.yuv
+
+-rw-r--r-- 1 adonisking adonisking 1.4M Jan 21 23:37 frame_0001_seq68.yuv
+
+-rw-rw-r-- 1 adonisking adonisking 1.5M Jan 21 23:46 output_720p.png
+
+-rw-rw-r-- 1 adonisking adonisking 475K Jan 21 23:47 output_gray.png
+
+Dựa trên kết quả lệnh ls -lah bạn vừa cung cấp, chúng ta có một phát hiện cực kỳ quan trọng giúp giải mã toàn bộ vấn đề:
+
+1. Phân tích con số 1.4M (1,382,400 bytes)
+File frame_0000_seq38.yuv có kích thước 1,382,400 bytes. Hãy làm toán:
+
+Độ phân giải: 1280×720=921,600 pixels.
+
+Định dạng YUV420: Mỗi pixel tốn trung bình 1.5 bytes.
+
+Tính toán: 921,600×1.5=1,382,400 bytes.
+
+Kết luận: File của bạn đúng là định dạng YUV420 về mặt dung lượng và cấu trúc bộ nhớ. FFmpeg báo lỗi trước đó là do nó không tìm thấy đủ dữ liệu cho frame thứ 2 (vì bạn chỉ capture 1 frame duy nhất nên file kết thúc đột ngột).
+
+2. Vậy tại sao ảnh vẫn "xanh tím" như RAW?
+Nếu dung lượng là YUV420 mà hình ảnh lại ra "xanh tím" và có sọc lưới, thì đây là trường hợp "Râu ông nọ chắp cằm bà kia":
+
+Driver/Phần cứng: Sensor đang gửi dữ liệu Bayer RAW vào buffer.
+
+V4L2 Framework: Bạn thiết lập (hoặc hệ thống tự hiểu) là V4L2_PIX_FMT_YUV420.
+
+Hậu quả: Driver Unicam của Pi không có bộ chuyển đổi màu phần cứng (Hardware ISP) tự động bên trong nó. Nó chỉ copy "nguyên xi" các byte từ Sensor vào buffer.
+
+Kết quả: Bạn nhận được một file có kích thước của YUV420 nhưng nội dung bên trong là các điểm ảnh Bayer RAW bị xếp chồng chéo lên nhau.
+
+3. Cách xem file này đúng nhất ngay bây giờ
+Vì dung lượng đã khớp 720p, bạn hãy dùng lệnh FFmpeg này để xem "thực thể" bên trong nó là gì. Chúng ta sẽ thử đọc nó như ảnh Xám (Grayscale) để bỏ qua sự nhiễu loạn về màu sắc:
+
+Bash
+# Đọc kênh Y (chiếm 1280x720 bytes đầu tiên) để xem hình dáng
+ffmpeg -f rawvideo -pixel_format gray -video_size 1280x720 -i frame_0000_seq38.yuv -frames:v 1 output_check.png
+Nếu lệnh này ra một tấm ảnh đen trắng rõ nét nhưng có các hạt li ti (mosaic), thì xác nhận 100%: Dữ liệu là Bayer RAW nhưng đang bị ép vào khung (container) của YUV420.
+
+4. Giải pháp cho bạn
+Bạn đang đứng trước hai lựa chọn cho project ISP:
+
+Lựa chọn A (Làm ISP chuẩn): Sửa code C để capture đúng định dạng V4L2_PIX_FMT_SGBRG10. Đây là cách làm đúng nếu bạn muốn tự viết thuật toán Debayer, Gamma, White Balance.
+
+Lựa chọn B (Dùng ISP của Pi): Nếu bạn muốn có ảnh YUV420 sạch đẹp ngay lập tức, bạn phải dùng libcamera hoặc sử dụng bộ ISP phần cứng thông qua /dev/video14 (Video Post Processor).
+
+Lời khuyên: Vì bạn đang làm project về ISP, bạn nên chọn Lựa chọn A. Hãy sửa pixelformat trong code thành định dạng Bayer.
+
+Bước tiếp theo: Bạn có muốn tôi hướng dẫn cách sửa lại cấu hình V4L2_PIX_FMT trong code C để nó không còn "nhận vơ" là YUV420 nữa, mà trả về đúng bản chất RAW 10-bit không?

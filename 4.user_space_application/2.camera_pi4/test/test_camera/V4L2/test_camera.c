@@ -47,6 +47,24 @@ int main()
     else {
         printf("Camera initialized successfully\n");
     }
+    // Sau khi gọi VIDIOC_STREAMON
+    int skip_frames = 10; // Bỏ qua 10 frame đầu để ổn định ánh sáng
+    for (int i = 0; i < skip_frames; i++) {
+        struct v4l2_buffer buf;
+        memset(&buf, 0, sizeof(buf));
+        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory = V4L2_MEMORY_MMAP;
+
+        // Dequeue
+        ioctl(cam.fd, VIDIOC_DQBUF, &buf);
+        
+        // Không xử lý gì cả, chỉ in log nhẹ để theo dõi
+        printf("Skipping warm-up frame %d...\n", i);
+
+        // Re-queue ngay lập tức để driver tiếp tục làm việc
+        ioctl(cam.fd, VIDIOC_QBUF, &buf);
+    }
+
     uint8_t *frame;
     size_t size;
     if(camera_start_capture(&cam, &frame, &size) != 0) {

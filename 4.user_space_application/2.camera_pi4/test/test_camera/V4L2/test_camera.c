@@ -1,6 +1,7 @@
 #include "camera.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <linux/v4l2-controls.h>
 
 char *device_path = "/dev/video0";
 
@@ -37,6 +38,7 @@ void save_example_frame(const char *filename, uint16_t *data, int width, int hei
                filename, width * height * 2);
     }
 }
+
 int main()
 {
     st_camera cam;

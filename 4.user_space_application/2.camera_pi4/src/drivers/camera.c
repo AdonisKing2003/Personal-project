@@ -84,6 +84,12 @@ int setup_media_pipeline(const char *unused_pattern) {
     snprintf(cmd, sizeof(cmd), 
         "media-ctl -d /dev/media4 --set-v4l2 '\"ov5647 10-0036\":0[fmt:SGBRG10_1X10/640x480]'");
     system(cmd);
+    snprintf(cmd, sizeof(cmd), 
+        "v4l2-ctl -d /dev/v4l-subdev0 --set-ctrl=analogue_gain=1023");
+    system(cmd);
+    snprintf(cmd, sizeof(cmd), 
+        "v4l2-ctl -d /dev/v4l-subdev0 --get-ctrl=analogue_gain");
+    system(cmd);
 
     /* 2. Kiểm tra node video */
     printf("[V4L2]: Pipeline configured. Use /dev/video0 for capture.\n");
